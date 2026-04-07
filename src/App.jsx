@@ -1,0 +1,44 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import { useAuthStore } from './store/authStore'
+
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import Budgets from './pages/budgets/Budgets'
+import NewBudget from './pages/budgets/NewBudget'
+import BudgetDetail from './pages/budgets/BudgetDetail'
+import ApprovalPage from './pages/budgets/ApprovalPage'
+import Clients from './pages/clients/Clients'
+import Templates from './pages/templates/Templates'
+import Dashboard from './pages/dashboard/Dashboard'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import Profile from './pages/profile/Profile'
+
+function PrivateRoute({ children }) {
+  const token = useAuthStore(s => s.token)
+  return token ? children : <Navigate to="/login" replace />
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/aprovar/:token" element={<ApprovalPage />} />
+
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/budgets" element={<PrivateRoute><Budgets /></PrivateRoute>} />
+        <Route path="/budgets/new" element={<PrivateRoute><NewBudget /></PrivateRoute>} />
+        <Route path="/budgets/:id" element={<PrivateRoute><BudgetDetail /></PrivateRoute>} />
+        <Route path="/clients" element={<PrivateRoute><Clients /></PrivateRoute>} />
+        <Route path="/templates" element={<PrivateRoute><Templates /></PrivateRoute>} />
+        <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/esqueci-senha" element={<ForgotPassword />} />
+
+        <Route path="*" element={<Navigate to="/budgets" replace />} />
+      </Routes>
+    </BrowserRouter>
+  )
+}
