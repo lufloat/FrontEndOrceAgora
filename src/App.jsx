@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from './store/authStore'
 
 import Login from './pages/auth/Login'
@@ -17,6 +18,16 @@ import Agenda from './pages/agenda/Agenda'
 
 function PrivateRoute({ children }) {
   const token = useAuthStore(s => s.token)
+  const [hydrated, setHydrated] = useState(false)
+
+  useEffect(() => {
+    const unsub = useAuthStore.persist.onFinishHydration(() => setHydrated(true))
+    setHydrated(useAuthStore.persist.hasHydrated())
+    return unsub
+  }, [])
+
+  if (!hydrated) return null
+
   return token ? children : <Navigate to="/login" replace />
 }
 
@@ -38,7 +49,6 @@ export default function App() {
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/esqueci-senha" element={<ForgotPassword />} />
         <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
-
 
         <Route path="*" element={<Navigate to="/budgets" replace />} />
       </Routes>
