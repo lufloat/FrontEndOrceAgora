@@ -13,6 +13,7 @@ import Templates from './pages/templates/Templates'
 import Dashboard from './pages/dashboard/Dashboard'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import Profile from './pages/profile/Profile'
+import Agenda from './pages/agenda/Agenda'
 
 function PrivateRoute({ children }) {
   const token = useAuthStore(s => s.token)
@@ -36,6 +37,8 @@ export default function App() {
         <Route path="/templates" element={<PrivateRoute><Templates /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/esqueci-senha" element={<ForgotPassword />} />
+        <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
+
 
         <Route path="*" element={<Navigate to="/budgets" replace />} />
       </Routes>

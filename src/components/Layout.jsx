@@ -1,10 +1,12 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { FileText, Users, Layers, LayoutDashboard, LogOut, UserCircle } from 'lucide-react'
+import { FileText, Users, Layers, LayoutDashboard, LogOut, UserCircle, CalendarDays } from 'lucide-react'
+
 
 const nav = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/budgets', icon: FileText, label: 'Orçamentos' },
+  { to: '/agenda', icon: CalendarDays, label: 'Agenda' },
   { to: '/clients', icon: Users, label: 'Clientes' },
   { to: '/templates', icon: Layers, label: 'Modelos' },
   { to: '/profile', icon: UserCircle, label: 'Perfil' },
