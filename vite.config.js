@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
         name: 'OrceAgora',
         short_name: 'OrceAgora',
@@ -18,6 +18,7 @@ export default defineConfig({
         orientation: 'portrait',
         scope: '/',
         start_url: '/',
+        lang: 'pt-BR',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -38,17 +39,21 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache' }
-          },
           {
             urlPattern: /^https:\/\/.*\/api\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'api-cache' }
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 300
+              }
+            }
           }
         ]
       }

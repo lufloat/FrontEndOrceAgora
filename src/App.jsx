@@ -15,6 +15,7 @@ import Dashboard from './pages/dashboard/Dashboard'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import Profile from './pages/profile/Profile'
 import Agenda from './pages/agenda/Agenda'
+import { InstallPrompt } from './components/InstallPrompt'
 
 function PrivateRoute({ children }) {
   const token = useAuthStore(s => s.token)
@@ -35,6 +36,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <InstallPrompt />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
