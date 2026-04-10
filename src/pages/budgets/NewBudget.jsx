@@ -108,8 +108,14 @@ export default function NewBudget() {
       const res = await createBudget(payload)
       toast.success('Orçamento criado!')
       navigate(`/budgets/${res.data.id}`)
-    } catch {
-      toast.error('Erro ao criar orçamento')
+    }  catch (err) {
+  const msg = err.response?.data?.message || ''
+  if (msg.includes('Limite')) {
+    toast.error(msg, { duration: 5000 })
+    navigate('/planos')
+  } else {
+    toast.error('Erro ao criar orçamento')
+  }
     } finally {
       setLoading(false)
     }

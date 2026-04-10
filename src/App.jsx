@@ -16,6 +16,9 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import Profile from './pages/profile/Profile'
 import Agenda from './pages/agenda/Agenda'
 import { InstallPrompt } from './components/InstallPrompt'
+import Plans from './pages/plans/Plans'
+import { ProGate } from './components/ProGate'
+import { usePlan } from './hooks/usePlan'
 
 function PrivateRoute({ children }) {
   const token = useAuthStore(s => s.token)
@@ -32,17 +35,32 @@ function PrivateRoute({ children }) {
   return token ? children : <Navigate to="/login" replace />
 }
 
+function HomeRedirect() {
+  const { isPro } = usePlan()
+  const token = useAuthStore(s => s.token)
+  if (!token) return <Navigate to="/login" replace />
+  return <Navigate to="/budgets" replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
       <InstallPrompt />
       <Routes>
+        <Route path="/" element={<HomeRedirect />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/aprovar/:token" element={<ApprovalPage />} />
 
-        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/dashboard" element={
+          <PrivateRoute>
+            <ProGate feature="O dashboard financeiro">
+              <Dashboard />
+            </ProGate>
+          </PrivateRoute>
+        } />
         <Route path="/budgets" element={<PrivateRoute><Budgets /></PrivateRoute>} />
         <Route path="/budgets/new" element={<PrivateRoute><NewBudget /></PrivateRoute>} />
         <Route path="/budgets/:id" element={<PrivateRoute><BudgetDetail /></PrivateRoute>} />
@@ -50,9 +68,16 @@ export default function App() {
         <Route path="/templates" element={<PrivateRoute><Templates /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/esqueci-senha" element={<ForgotPassword />} />
-        <Route path="/agenda" element={<PrivateRoute><Agenda /></PrivateRoute>} />
+        <Route path="/planos" element={<PrivateRoute><Plans /></PrivateRoute>} />
+        <Route path="/agenda" element={
+          <PrivateRoute>
+            <ProGate feature="A agenda com lembretes">
+              <Agenda />
+            </ProGate>
+          </PrivateRoute>
+        } />
 
-        <Route path="*" element={<Navigate to="/budgets" replace />} />
+        <Route path="*" element={<HomeRedirect />} />
       </Routes>
     </BrowserRouter>
   )
