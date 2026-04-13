@@ -44,12 +44,12 @@ export default function Plans() {
   const handleUpgrade = async () => {
     try {
       setUpgrading(true)
-      await upgradeToPro({})
+      await upgradeToPro({ cpfCnpj: '70228556171' })
       setAuth({ ...user, plan: 'pro' }, token)
-      toast.success('Plano Pro ativado! Bem-vindo ao Pro 🎉')
+      toast.success('Plano Pro ativado! 🎉')
       navigate('/dashboard')
-    } catch {
-      toast.error('Erro ao ativar o plano Pro')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Erro ao ativar Pro')
     } finally {
       setUpgrading(false)
     }
