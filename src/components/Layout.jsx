@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { PlanBanner } from './PlanBanner'
+import { EmailConfirmBanner } from './EmailConfirmBanner'
 import { usePlan } from '../hooks/usePlan'
 import {
   FileText, Users, Layers, LogOut,
@@ -17,16 +18,11 @@ export function Layout({ children }) {
   const handleLogout = () => { logout(); navigate('/login') }
 
   const nav = [
-    // Básico + Pro
     { to: '/budgets', icon: FileText, label: 'Orçamentos', pro: false },
     { to: '/clients', icon: Users, label: 'Clientes', pro: false },
     { to: '/templates', icon: Layers, label: 'Modelos', pro: false },
-
-    // Só Pro
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', pro: true },
     { to: '/agenda', icon: CalendarDays, label: 'Agenda', pro: true },
-
-    // Sempre
     { to: '/planos', icon: Crown, label: 'Planos', pro: false },
     { to: '/profile', icon: UserCircle, label: 'Perfil', pro: false },
   ]
@@ -76,11 +72,12 @@ export function Layout({ children }) {
 
       {/* Main */}
       <main className="flex-1 flex flex-col min-h-screen">
+        <EmailConfirmBanner />
         <PlanBanner />
         <div className="flex-1 p-4 md:p-8">{children}</div>
       </main>
 
-      {/* Bottom nav mobile — só itens principais */}
+      {/* Bottom nav mobile */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white
         border-t border-slate-100 flex">
         {[

@@ -19,6 +19,8 @@ import { InstallPrompt } from './components/InstallPrompt'
 import Plans from './pages/plans/Plans'
 import { ProGate } from './components/ProGate'
 import { usePlan } from './hooks/usePlan'
+import ConfirmEmail from './pages/auth/ConfirmEmail'
+import ResetPassword from './pages/auth/ResetPassword'
 
 function PrivateRoute({ children }) {
   const token = useAuthStore(s => s.token)
@@ -68,6 +70,8 @@ export default function App() {
         <Route path="/templates" element={<PrivateRoute><Templates /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/esqueci-senha" element={<ForgotPassword />} />
+        <Route path="/confirmar-email" element={<ConfirmEmail />} />
+        <Route path="/redefinir-senha" element={<ResetPassword />} />
         <Route path="/planos" element={<PrivateRoute><Plans /></PrivateRoute>} />
         <Route path="/agenda" element={
           <PrivateRoute>
