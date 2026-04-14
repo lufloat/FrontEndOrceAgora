@@ -56,24 +56,21 @@ export default function Plans() {
   }
 
   const handleCancel = async () => {
-    if (!confirm('Cancelar assinatura Pro? Você voltará ao plano Básico.')) return
+    if (!confirm(
+      'Cancelar assinatura? Você continuará com acesso Pro até o fim do período pago.'
+    )) return
     try {
       await cancelPro()
-      toast.success('Assinatura cancelada')
-      setStatus(s => ({ ...s, plan: 'basic' }))
+      const res = await getStatus()
+      setStatus(res.data)
+      toast.success(
+        `Assinatura cancelada. Você tem acesso Pro por mais ${res.data.daysRemainingAfterCancel} dias.`,
+        { duration: 6000 }
+      )
     } catch {
       toast.error('Erro ao cancelar')
     }
   }
-
-  if (loading) return (
-    <Layout>
-      <div className="flex justify-center py-16">
-        <div className="w-8 h-8 border-4 border-primary/30 border-t-primary
-          rounded-full animate-spin" />
-      </div>
-    </Layout>
-  )
 
   const isPro = status?.plan === 'pro'
 
@@ -87,21 +84,28 @@ export default function Plans() {
           </p>
         </div>
 
+        {/* Aviso de cancelamento agendado — acima dos cards */}
+        {isPro && status?.cancelAtPeriodEnd && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4
+            text-sm text-amber-700 text-center">
+            ⚠️ Assinatura cancelada — você ainda tem acesso Pro por{' '}
+            <strong>{status.daysRemainingAfterCancel} dias</strong>
+            {status.currentPeriodEnd && ` (até ${new Date(status.currentPeriodEnd)
+              .toLocaleDateString('pt-BR')})`}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-          {/* Básico */}
-          <div className={`card border-2 ${!isPro
-            ? 'border-primary' : 'border-slate-100'}`}>
+          {/* Card Básico */}
+          <div className={`card border-2 ${!isPro ? 'border-primary' : 'border-slate-100'}`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Básico</h2>
-                <p className="text-2xl font-bold text-slate-800 mt-1">
-                  Grátis
-                </p>
+                <p className="text-2xl font-bold text-slate-800 mt-1">Grátis</p>
               </div>
               {!isPro && (
-                <span className="bg-primary/10 text-primary text-xs
-                  font-medium px-2.5 py-1 rounded-full">
+                <span className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">
                   Plano atual
                 </span>
               )}
@@ -117,14 +121,14 @@ export default function Plans() {
             </div>
 
             {isPro && (
-              <button onClick={handleCancel}
-                className="btn-secondary w-full text-sm">
+              <button onClick={handleCancel} className="btn-secondary w-full text-sm">
                 Voltar para o Básico
               </button>
             )}
           </div>
+          {/* Fim card Básico */}
 
-          {/* Pro */}
+          {/* Card Pro */}
           <div className={`card border-2 relative overflow-hidden
             ${isPro ? 'border-primary' : 'border-slate-100'}`}>
 
@@ -135,8 +139,7 @@ export default function Plans() {
 
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-800 flex
-                  items-center gap-2">
+                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                   Pro <Crown size={18} className="text-amber-400" />
                 </h2>
                 <div className="flex items-baseline gap-1 mt-1">
@@ -145,8 +148,7 @@ export default function Plans() {
                 </div>
               </div>
               {isPro && (
-                <span className="bg-primary/10 text-primary text-xs
-                  font-medium px-2.5 py-1 rounded-full">
+                <span className="bg-primary/10 text-primary text-xs font-medium px-2.5 py-1 rounded-full">
                   Plano atual
                 </span>
               )}
@@ -163,29 +165,27 @@ export default function Plans() {
 
             {!isPro && (
               <button onClick={handleUpgrade} disabled={upgrading}
-                className="btn-primary w-full flex items-center
-                  justify-center gap-2">
+                className="btn-primary w-full flex items-center justify-center gap-2">
                 <Zap size={16} />
                 {upgrading ? 'Ativando...' : 'Assinar Pro — R$29,90/mês'}
               </button>
             )}
 
-            {isPro && status?.currentPeriodEnd && (
+            {isPro && !status?.cancelAtPeriodEnd && status?.currentPeriodEnd && (
               <p className="text-xs text-center text-muted">
                 Próxima cobrança:{' '}
-                {new Date(status.currentPeriodEnd)
-                  .toLocaleDateString('pt-BR')}
+                {new Date(status.currentPeriodEnd).toLocaleDateString('pt-BR')}
               </p>
             )}
           </div>
+          {/* Fim card Pro */}
+
         </div>
 
         {/* Status do mês */}
         {!isPro && status && (
           <div className="card mt-4">
-            <h3 className="font-semibold text-slate-700 mb-3">
-              Uso este mês
-            </h3>
+            <h3 className="font-semibold text-slate-700 mb-3">Uso este mês</h3>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-muted">Orçamentos criados</span>
               <span className="text-sm font-medium text-slate-800">
@@ -204,7 +204,8 @@ export default function Plans() {
                   width: `${Math.min(
                     (status.budgetsThisMonth / status.budgetLimit) * 100,
                     100)}%`
-                }} />
+                }}
+              />
             </div>
           </div>
         )}
