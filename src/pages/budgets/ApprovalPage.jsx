@@ -77,7 +77,7 @@ export default function ApprovalPage() {
 
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-primary">OrceAgora</h1>
+          <h1 className="text-2xl font-bold text-primary">StimServ</h1>
           <p className="text-muted text-sm">Orçamento #{String(budget.number).padStart(4, '0')}</p>
         </div>
 
@@ -220,7 +220,7 @@ export default function ApprovalPage() {
         )}
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Gerado por OrceAgora · orceagora.com.br
+          Gerado por StimServ · stimserv.com.br
         </p>
       </div>
     </div>

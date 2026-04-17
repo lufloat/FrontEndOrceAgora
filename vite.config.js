@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'OrceAgora',
-        short_name: 'OrceAgora',
+        name: 'StimServ',
+        short_name: 'StimServ',
         description: 'Orçamentos profissionais em segundos',
         theme_color: '#1A56DB',
         background_color: '#F8FAFC',

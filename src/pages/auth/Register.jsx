@@ -86,7 +86,7 @@ export default function Register() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface p-4">
       <div className="card w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-primary mb-1">OrceAgora</h1>
+        <h1 className="text-2xl font-bold text-primary mb-1">StimServ</h1>
         <p className="text-muted text-sm mb-6">Crie sua conta grátis</p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">

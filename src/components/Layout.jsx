@@ -33,7 +33,7 @@ export function Layout({ children }) {
       <aside className="hidden md:flex flex-col w-56 bg-white
         border-r border-slate-100 p-4 gap-1">
         <div className="px-3 py-4 mb-2">
-          <h1 className="text-xl font-bold text-primary">OrceAgora</h1>
+          <h1 className="text-xl font-bold text-primary">StimServ</h1>
           <div className="flex items-center gap-1.5 mt-0.5">
             <p className="text-xs text-muted truncate">{user?.name}</p>
             {isPro && (
