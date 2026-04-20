@@ -30,6 +30,9 @@ export default function Plans() {
   const [status, setStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [upgrading, setUpgrading] = useState(false)
+  const [showCpf, setShowCpf] = useState(false)
+  const [cpf, setCpf] = useState('')
+  const [pixData, setPixData] = useState(null)
   const navigate = useNavigate()
   const setAuth = useAuthStore(s => s.setAuth)
   const token = useAuthStore(s => s.token)
@@ -42,12 +45,15 @@ export default function Plans() {
   }, [])
 
   const handleUpgrade = async () => {
+    if (!showCpf) { setShowCpf(true); return }
+    if (!cpf || cpf.replace(/\D/g, '').length < 11) {
+      toast.error('Informe um CPF válido')
+      return
+    }
     try {
       setUpgrading(true)
-      await upgradeToPro({ cpfCnpj: '70228556171' })
-      setAuth({ ...user, plan: 'pro' }, token)
-      toast.success('Plano Pro ativado! 🎉')
-      navigate('/dashboard')
+      const res = await upgradeToPro({ cpfCnpj: cpf.replace(/\D/g, '') })
+      setPixData(res.data)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Erro ao ativar Pro')
     } finally {
@@ -84,7 +90,7 @@ export default function Plans() {
           </p>
         </div>
 
-        {/* Aviso de cancelamento agendado — acima dos cards */}
+        {/* Aviso de cancelamento agendado */}
         {isPro && status?.cancelAtPeriodEnd && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4
             text-sm text-amber-700 text-center">
@@ -126,7 +132,6 @@ export default function Plans() {
               </button>
             )}
           </div>
-          {/* Fim card Básico */}
 
           {/* Card Pro */}
           <div className={`card border-2 relative overflow-hidden
@@ -164,11 +169,30 @@ export default function Plans() {
             </div>
 
             {!isPro && (
-              <button onClick={handleUpgrade} disabled={upgrading}
-                className="btn-primary w-full flex items-center justify-center gap-2">
-                <Zap size={16} />
-                {upgrading ? 'Ativando...' : 'Assinar Pro — R$29,90/mês'}
-              </button>
+              <div className="flex flex-col gap-2">
+                {showCpf && (
+                  <input
+                    type="text"
+                    placeholder="Digite seu CPF (somente números)"
+                    value={cpf}
+                    onChange={e => setCpf(e.target.value)}
+                    maxLength={14}
+                    className="input text-sm"
+                  />
+                )}
+                <button
+                  onClick={handleUpgrade}
+                  disabled={upgrading}
+                  className="btn-primary w-full flex items-center justify-center gap-2"
+                >
+                  <Zap size={16} />
+                  {upgrading
+                    ? 'Processando...'
+                    : showCpf
+                    ? 'Confirmar e gerar Pix'
+                    : 'Assinar Pro — R$29,90/mês'}
+                </button>
+              </div>
             )}
 
             {isPro && !status?.cancelAtPeriodEnd && status?.currentPeriodEnd && (
@@ -178,7 +202,6 @@ export default function Plans() {
               </p>
             )}
           </div>
-          {/* Fim card Pro */}
 
         </div>
 
@@ -212,6 +235,77 @@ export default function Plans() {
 
         <div className="h-20 md:h-0" />
       </div>
+
+      {/* Modal Pix */}
+      {pixData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50"
+            onClick={() => setPixData(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full
+            max-w-sm mx-4 p-6 text-center">
+
+            <h2 className="text-xl font-bold text-slate-800 mb-2">
+              Pagar com Pix
+            </h2>
+            <p className="text-sm text-muted mb-4">
+              Escaneie o QR Code ou copie o código Pix para ativar o plano Pro
+            </p>
+
+            {pixData.pixQrCodeUrl && (
+              <img
+                src={`data:image/png;base64,${pixData.pixQrCodeUrl}`}
+                className="w-48 h-48 mx-auto mb-4 rounded-lg border border-slate-200"
+                alt="QR Code Pix"
+              />
+            )}
+
+            {pixData.pixCode && (
+              <div className="mb-4">
+                <p className="text-xs text-muted mb-2">Código Pix (copia e cola):</p>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={pixData.pixCode}
+                    className="input text-xs flex-1 truncate"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixData.pixCode)
+                      toast.success('Código copiado!')
+                    }}
+                    className="btn-primary px-3 text-sm flex-shrink-0">
+                    Copiar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-blue-50 rounded-lg p-3 mb-4">
+              <p className="text-xs text-blue-700">
+                ⚡ Após o pagamento, seu plano Pro será ativado automaticamente
+                em até 5 minutos.
+              </p>
+            </div>
+
+            {pixData.paymentUrl && (
+              <a
+                href={pixData.paymentUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary w-full block text-center mb-3 text-sm">
+                Abrir página de pagamento
+              </a>
+            )}
+
+            <button
+              onClick={() => setPixData(null)}
+              className="text-sm text-muted hover:text-slate-600">
+              Fechar — pagarei depois
+            </button>
+          </div>
+        </div>
+      )}
+
     </Layout>
   )
 }
