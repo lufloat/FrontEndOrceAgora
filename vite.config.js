@@ -9,37 +9,23 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
-        name: 'StimServ',
-        short_name: 'StimServ',
-        description: 'Orçamentos profissionais em segundos',
-        theme_color: '#1A56DB',
-        background_color: '#F8FAFC',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        lang: 'pt-BR',
-        icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
+        /* ... sem alterações ... */
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        /* ✅ FIX 1 — aumenta o limite para 5 MB */
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+
+        /* ✅ FIX 2 — exclui PNGs grandes do precache */
+        globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
+        /*  ↑ removeu "png" daqui para evitar o erro */
+
+        /* ✅ FIX 3 — lista explícita dos PNGs pequenos que devem */
+        /*            entrar no precache (ícones PWA apenas)      */
+        additionalManifestEntries: [
+          { url: 'pwa-192x192.png', revision: null },
+          { url: 'pwa-512x512.png', revision: null },
+        ],
+
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
@@ -51,12 +37,12 @@ export default defineConfig({
               networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 300
-              }
-            }
-          }
-        ]
-      }
-    })
-  ]
+                maxAgeSeconds: 300,
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ],
 })
