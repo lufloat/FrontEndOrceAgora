@@ -7,115 +7,69 @@ import { getClients } from '../../api/clients'
 import { getTemplates } from '../../api/templates'
 import { currency } from '../../utils/format'
 import { Layout } from '../../components/Layout'
-import { Input } from '../../components/ui/Input'
-import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  Plus, Trash2, ChevronDown, FileText,
+  Users, ShoppingCart, Tag, ClipboardList,
+  Minus, ArrowRight, Eye, Link2, Upload
+} from 'lucide-react'
 
 export default function NewBudget() {
   const navigate = useNavigate()
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    defaultValues: { discountType: 'fixed', discountValue: 0, extras: 0, validityDays: 7 }
+    defaultValues: { discountType: 'fixed', discountValue: 0, extras: 0, validityDays: 30 }
   })
 
-  const [clients, setClients] = useState([])
-  const [templates, setTemplates] = useState([])
-  const [items, setItems] = useState([])
+  const [clients, setClients]           = useState([])
+  const [templates, setTemplates]       = useState([])
+  const [items, setItems]               = useState([
+    { id: '1', name: '', desc: '', qty: 1, unitPrice: 0, isLabor: false, laborType: null },
+    { id: '2', name: '', desc: '', qty: 1, unitPrice: 0, isLabor: false, laborType: null },
+  ])
   const [useNewClient, setUseNewClient] = useState(false)
-  const [showTemplates, setShowTemplates] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading]           = useState(false)
 
-  const discountType = watch('discountType')
+  const discountType  = watch('discountType')
   const discountValue = parseFloat(watch('discountValue') || 0)
-  const extras = parseFloat(watch('extras') || 0)
+  const extras        = parseFloat(watch('extras') || 0)
 
   useEffect(() => {
-    getClients().then(r => setClients(r.data))
-    getTemplates().then(r => setTemplates(r.data))
+    getClients().then(r => setClients(r.data)).catch(() => {})
+    getTemplates().then(r => setTemplates(r.data)).catch(() => {})
   }, [])
 
-  // Cálculos em tempo real
-  const subtotal = items.reduce((acc, i) => acc + (i.qty * i.unitPrice), 0)
-  const discountAmount = discountType === 'percent'
-    ? subtotal * (discountValue / 100)
-    : discountValue
-  const total = subtotal - discountAmount + extras
+  const subtotal       = items.reduce((a, i) => a + i.qty * i.unitPrice, 0)
+  const discountAmount = discountType === 'percent' ? subtotal * (discountValue / 100) : discountValue
+  const total          = subtotal - discountAmount + extras
 
-  const addItemFromTemplate = (template) => {
-    setItems(prev => [...prev, {
-      id: crypto.randomUUID(),
-      name: template.name,
-      qty: 1,
-      unitPrice: template.defaultPrice,
-      templateId: template.id,
-      isLabor: false,
-      laborType: null
-    }])
-    setShowTemplates(false)
-  }
-
-  const addCustomItem = (isLabor = false) => {
-    setItems(prev => [...prev, {
-      id: crypto.randomUUID(),
-      name: isLabor ? 'Mão de obra' : '',
-      qty: 1,
-      unitPrice: 0,
-      templateId: null,
-      isLabor,
-      laborType: isLabor ? 'total' : null
-    }])
-  }
-
-  const updateItem = (id, field, value) => {
-    setItems(prev => prev.map(i => i.id === id
-      ? {
-          ...i,
-          [field]: field === 'name' || field === 'laborType'
-            ? value
-            : parseFloat(value) || 0
-        }
-      : i
-    ))
-  }
-
-  const removeItem = (id) => setItems(prev => prev.filter(i => i.id !== id))
+  const addItem    = () => setItems(p => [...p, { id: crypto.randomUUID(), name: '', desc: '', qty: 1, unitPrice: 0, isLabor: false, laborType: null }])
+  const updateItem = (id, field, value) => setItems(p => p.map(i => i.id === id ? { ...i, [field]: ['name','desc','laborType'].includes(field) ? value : parseFloat(value)||0 } : i))
+  const removeItem = (id) => setItems(p => p.filter(i => i.id !== id))
+  const changeQty  = (id, delta) => setItems(p => p.map(i => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
 
   const onSubmit = async (data) => {
-    if (items.length === 0) {
-      toast.error('Adicione pelo menos um item')
-      return
-    }
+    if (!items.length) { toast.error('Adicione pelo menos um item'); return }
     try {
       setLoading(true)
       const payload = {
         clientId: useNewClient ? null : data.clientId || null,
         clientName: useNewClient ? data.clientName : null,
         clientPhone: useNewClient ? data.clientPhone : null,
-        items: items.map(i => ({
-          name: i.name,
-          qty: i.qty,
-          unitPrice: i.unitPrice,
-          templateId: i.templateId,
-          isLabor: i.isLabor,
-          laborType: i.laborType
-        })),
+        items: items.map(i => ({ name: i.name, qty: i.qty, unitPrice: i.unitPrice, isLabor: i.isLabor, laborType: i.laborType })),
         discountType: data.discountType,
         discountValue: parseFloat(data.discountValue) || 0,
         extras: parseFloat(data.extras) || 0,
         extrasDescription: data.extrasDescription,
         validityDays: parseInt(data.validityDays),
         notes: data.notes,
-        paymentMethods: data.paymentMethods
+        paymentMethods: data.paymentMethods,
       }
       const res = await createBudget(payload)
       toast.success('Orçamento criado!')
       navigate(`/budgets/${res.data.id}`)
-    }  catch (err) {
-  const msg = err.response?.data?.message || ''
-  if (msg.includes('Limite')) {
-    toast.error(msg, { duration: 5000 })
-    navigate('/planos')
-  } else {
-    toast.error('Erro ao criar orçamento')
-  }
+    } catch (err) {
+      const msg = err.response?.data?.message || ''
+      if (msg.includes('Limite')) { toast.error(msg, { duration: 5000 }); navigate('/planos') }
+      else toast.error('Erro ao criar orçamento')
     } finally {
       setLoading(false)
     }
@@ -123,225 +77,268 @@ export default function NewBudget() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => navigate('/budgets')}
-            className="text-muted hover:text-slate-700 text-sm">← Voltar</button>
-          <h1 className="text-2xl font-bold text-slate-800">Novo orçamento</h1>
-        </div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .nb-root { font-family:'Inter',sans-serif; padding:0 0 40px; }
+        .nb-layout { display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
+        .nb-card { background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:24px; margin-bottom:16px; }
+        .nb-card-title { display:flex; align-items:center; gap:10px; font-size:15px; font-weight:600; color:#0D0D0D; margin-bottom:20px; }
+        .nb-card-title-icon { width:32px; height:32px; border-radius:8px; background:#EBF5F4; display:flex; align-items:center; justify-content:center; color:#027373; }
+        .nb-toggle { display:flex; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:10px; padding:4px; gap:4px; margin-bottom:16px; }
+        .nb-toggle-btn { flex:1; padding:9px 0; border-radius:7px; border:none; font-size:13px; font-weight:500; cursor:pointer; transition:.15s; display:flex; align-items:center; justify-content:center; gap:6px; color:#6B7280; background:transparent; }
+        .nb-toggle-btn.active { background:#027373; color:#fff; box-shadow:0 2px 8px rgba(2,115,115,.25); }
+        .nb-search { display:flex; align-items:center; gap:10px; border:1.5px solid #E5E7EB; border-radius:10px; padding:0 14px; background:#fff; transition:.15s; }
+        .nb-search:focus-within { border-color:#027373; box-shadow:0 0 0 3px rgba(2,115,115,.1); }
+        .nb-search input { flex:1; border:none; outline:none; font-size:14px; color:#374151; padding:12px 0; background:transparent; }
+        .nb-search input::placeholder { color:#C4C8CF; }
+        .nb-items-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .nb-items-toolbar { display:flex; gap:8px; }
+        .nb-btn-outline { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:9px; border:1.5px solid #E5E7EB; background:#fff; font-size:12px; font-weight:500; color:#374151; cursor:pointer; transition:.15s; }
+        .nb-btn-outline:hover { border-color:#027373; color:#027373; }
+        .nb-btn-primary { display:flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; border:none; background:#027373; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; }
+        .nb-btn-primary:hover { background:#025E5E; }
+        .nb-btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+        .nb-col-headers { display:grid; grid-template-columns:2fr 2fr 120px 130px 110px 36px; gap:12px; padding:8px 12px; font-size:11px; font-weight:600; color:#9CA3AF; text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid #F3F4F6; margin-bottom:4px; }
+        .nb-item-row { display:grid; grid-template-columns:2fr 2fr 120px 130px 110px 36px; gap:12px; align-items:center; padding:12px; border:1px solid #F3F4F6; border-radius:10px; margin-bottom:6px; background:#FAFAFA; transition:.15s; }
+        .nb-item-row:hover { border-color:#E5E7EB; background:#fff; }
+        .nb-item-icon { width:30px; height:30px; border-radius:8px; background:#EBF5F4; display:flex; align-items:center; justify-content:center; color:#027373; flex-shrink:0; }
+        .nb-item-name { display:flex; align-items:center; gap:8px; }
+        .nb-input { width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; transition:.15s; }
+        .nb-input:focus { border-color:#027373; box-shadow:0 0 0 3px rgba(2,115,115,.1); }
+        .nb-input::placeholder { color:#C4C8CF; }
+        .nb-qty-ctrl { display:flex; align-items:center; gap:4px; }
+        .nb-qty-btn { width:26px; height:26px; border-radius:6px; border:1.5px solid #E5E7EB; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#6B7280; transition:.15s; }
+        .nb-qty-btn:hover { border-color:#027373; color:#027373; }
+        .nb-qty-val { width:32px; text-align:center; font-size:13px; font-weight:600; color:#0D0D0D; }
+        .nb-item-total { font-size:14px; font-weight:600; color:#0D0D0D; }
+        .nb-del-btn { width:32px; height:32px; border-radius:7px; border:1.5px solid #FEE2E2; background:#FFF5F5; display:flex; align-items:center; justify-content:center; color:#D95252; cursor:pointer; transition:.15s; }
+        .nb-del-btn:hover { background:#FEE2E2; }
+        .nb-add-row { width:100%; padding:14px; border-radius:10px; border:1.5px dashed #E5E7EB; background:#FAFAFA; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:500; color:#9CA3AF; cursor:pointer; transition:.15s; margin-top:8px; }
+        .nb-add-row:hover { border-color:#027373; color:#027373; background:#EBF5F4; }
+        .nb-val-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        .nb-label { font-size:12px; font-weight:500; color:#374151; margin-bottom:6px; display:block; }
+        .nb-select { width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; cursor:pointer; transition:.15s; }
+        .nb-select:focus { border-color:#027373; }
+        .nb-summary-box { background:#F9FAFB; border-radius:10px; padding:16px; margin-top:16px; border:1px solid #F3F4F6; }
+        .nb-summary-row { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:4px 0; }
+        .nb-summary-row .lbl { color:#6B7280; }
+        .nb-summary-row .val { font-weight:500; color:#374151; }
+        .nb-summary-row.discount .val { color:#D95252; }
+        .nb-summary-row.total-row { border-top:1px solid #E5E7EB; margin-top:8px; padding-top:12px; }
+        .nb-summary-row.total-row .lbl { font-size:15px; font-weight:700; color:#0D0D0D; }
+        .nb-summary-row.total-row .val { font-size:18px; font-weight:700; color:#027373; }
+        .nb-textarea { width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; resize:none; transition:.15s; font-family:'Inter',sans-serif; }
+        .nb-textarea:focus { border-color:#027373; box-shadow:0 0 0 3px rgba(2,115,115,.1); }
+        .nb-textarea::placeholder { color:#C4C8CF; }
+        .nb-sidebar { position:sticky; top:20px; }
+        .nb-resume-card { border-radius:14px; overflow:hidden; border:1px solid #E5E7EB; box-shadow:0 4px 24px rgba(0,0,0,.07); }
+        .nb-resume-head { background:#027373; padding:20px 22px; display:flex; align-items:center; justify-content:space-between; }
+        .nb-resume-head-title { font-size:15px; font-weight:600; color:#fff; }
+        .nb-resume-badge { font-size:11px; font-weight:600; padding:3px 10px; border-radius:20px; background:rgba(255,255,255,.2); color:#fff; }
+        .nb-resume-meta { background:#025E5E; padding:14px 22px; display:flex; align-items:center; gap:12px; }
+        .nb-resume-meta-icon { width:36px; height:36px; border-radius:9px; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; color:#fff; }
+        .nb-resume-num { font-size:14px; font-weight:600; color:#fff; margin-bottom:2px; }
+        .nb-resume-date { font-size:11px; color:rgba(255,255,255,.6); }
+        .nb-resume-body { background:#fff; padding:20px 22px; }
+        .nb-resume-line { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:8px 0; border-bottom:1px solid #F3F4F6; }
+        .nb-resume-line:last-of-type { border-bottom:none; }
+        .nb-resume-line .lbl { color:#6B7280; }
+        .nb-resume-line .val { font-weight:500; color:#374151; }
+        .nb-resume-line .discount { color:#D95252; }
+        .nb-resume-total { display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px; }
+        .nb-resume-total .lbl { font-size:15px; font-weight:700; color:#0D0D0D; }
+        .nb-resume-total .val { font-size:20px; font-weight:700; color:#027373; }
+        .nb-link-hint { display:flex; align-items:flex-start; gap:10px; background:#EBF5F4; border-radius:10px; padding:14px; margin:14px 0; }
+        .nb-link-hint-icon { color:#027373; flex-shrink:0; margin-top:1px; }
+        .nb-link-hint-title { font-size:13px; font-weight:600; color:#027373; margin-bottom:2px; }
+        .nb-link-hint-sub { font-size:11px; color:#5A9E99; }
+        .nb-btn-continue { width:100%; padding:13px; border-radius:10px; border:none; background:#027373; color:#fff; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:.15s; margin-bottom:8px; }
+        .nb-btn-continue:hover { background:#025E5E; box-shadow:0 4px 16px rgba(2,115,115,.3); }
+        .nb-btn-continue:disabled { opacity:.6; cursor:not-allowed; }
+        .nb-btn-preview { width:100%; padding:11px; border-radius:10px; border:1.5px solid #E5E7EB; background:#fff; color:#374151; font-size:13px; font-weight:500; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:.15s; }
+        .nb-btn-preview:hover { border-color:#027373; color:#027373; }
+        .nb-date-input { width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; transition:.15s; font-family:'Inter',sans-serif; }
+        .nb-date-input:focus { border-color:#027373; }
+        @media(max-width:900px){
+          .nb-layout { grid-template-columns:1fr; }
+          .nb-sidebar { position:static; }
+          .nb-col-headers { display:none; }
+          .nb-item-row { grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:8px; }
+        }
+      `}</style>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-
-          {/* Cliente */}
-          <div className="card">
-            <h2 className="font-semibold text-slate-700 mb-4">Cliente</h2>
-            <div className="flex gap-3 mb-4">
-              <button type="button"
-                onClick={() => setUseNewClient(false)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors
-                  ${!useNewClient ? 'bg-primary text-white border-primary' : 'bg-white text-slate-600 border-slate-200'}`}>
-                Cliente existente
-              </button>
-              <button type="button"
-                onClick={() => setUseNewClient(true)}
-                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors
-                  ${useNewClient ? 'bg-primary text-white border-primary' : 'bg-white text-slate-600 border-slate-200'}`}>
-                Novo cliente
-              </button>
-            </div>
-
-            {useNewClient ? (
-              <div className="flex flex-col gap-3">
-                <Input label="Nome do cliente" placeholder="João Silva"
-                  {...register('clientName', { required: 'Informe o nome' })}
-                  error={errors.clientName?.message} />
-                <Input label="Telefone" placeholder="11999999999"
-                  {...register('clientPhone')} />
-              </div>
-            ) : (
-              <div>
-                <label className="text-sm font-medium text-slate-700">Selecionar cliente</label>
-                <select className="input mt-1" {...register('clientId')}>
-                  <option value="">Selecione...</option>
-                  {clients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name} {c.phone ? `— ${c.phone}` : ''}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Itens */}
-          <div className="card">
-            <h2 className="font-semibold text-slate-700 mb-4">Itens do orçamento</h2>
-
-            {items.length > 0 && (
-              <div className="flex flex-col gap-2 mb-4">
-                {items.map(item => (
-                  <div key={item.id} className="flex gap-2 items-start bg-slate-50 rounded-lg p-3">
-                    <div className="flex-1">
-                      <input className="input mb-2" placeholder="Descrição do item"
-                        value={item.name}
-                        onChange={e => updateItem(item.id, 'name', e.target.value)} />
-
-                      {/* Toggle mão de obra */}
-                      {item.isLabor && (
-                        <div className="flex gap-2 mb-2">
-                          {['hour', 'day', 'total'].map(type => (
-                            <button key={type} type="button"
-                              onClick={() => updateItem(item.id, 'laborType', type)}
-                              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors
-                                ${item.laborType === type
-                                  ? 'bg-primary text-white border-primary'
-                                  : 'bg-white text-slate-600 border-slate-200'}`}>
-                              {type === 'hour' ? 'Por hora' : type === 'day' ? 'Por dia' : 'Total'}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <label className="text-xs text-muted">
-                            {item.laborType === 'hour' ? 'Horas' : item.laborType === 'day' ? 'Dias' : 'Qtd'}
-                          </label>
-                          <input type="number" step="0.01" min="0" className="input"
-                            value={item.qty}
-                            onChange={e => updateItem(item.id, 'qty', e.target.value)} />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-xs text-muted">
-                            {item.laborType === 'hour' ? 'R$/hora' : item.laborType === 'day' ? 'R$/dia' : 'Valor (R$)'}
-                          </label>
-                          <input type="number" step="0.01" min="0" className="input"
-                            value={item.unitPrice}
-                            onChange={e => updateItem(item.id, 'unitPrice', e.target.value)} />
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-xs text-muted">Total</label>
-                          <div className="input bg-slate-100 text-slate-600">
-                            {currency(item.qty * item.unitPrice)}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <button type="button" onClick={() => removeItem(item.id)}
-                      className="p-2 hover:bg-red-50 rounded-lg mt-1">
-                      <Trash2 size={16} className="text-red-400" />
-                    </button>
+      <div className="nb-root">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="nb-layout">
+            <div>
+              {/* Cliente */}
+              <div className="nb-card">
+                <div className="nb-card-title">
+                  <div className="nb-card-title-icon"><Users size={15} /></div>
+                  Cliente
+                </div>
+                <div className="nb-toggle">
+                  <button type="button" className={`nb-toggle-btn ${!useNewClient ? 'active' : ''}`} onClick={() => setUseNewClient(false)}>
+                    <Users size={14} /> Cliente existente
+                  </button>
+                  <button type="button" className={`nb-toggle-btn ${useNewClient ? 'active' : ''}`} onClick={() => setUseNewClient(true)}>
+                    <Plus size={14} /> Novo cliente
+                  </button>
+                </div>
+                {useNewClient ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                    <div><span className="nb-label">Nome do cliente</span><input className="nb-input" placeholder="João Silva" {...register('clientName', { required: true })} /></div>
+                    <div><span className="nb-label">Telefone</span><input className="nb-input" placeholder="(11) 99999-9999" {...register('clientPhone')} /></div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Adicionar itens */}
-            <div className="flex gap-2 flex-wrap">
-              <div className="relative flex-1">
-                <button type="button"
-                  onClick={() => setShowTemplates(!showTemplates)}
-                  className="btn-secondary w-full flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2">
-                    <Plus size={16} /> Usar modelo salvo
-                  </span>
-                  {showTemplates ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-                {showTemplates && templates.length > 0 && (
-                  <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-slate-200 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-                    {templates.map(t => (
-                      <button key={t.id} type="button"
-                        onClick={() => addItemFromTemplate(t)}
-                        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-sm flex justify-between items-center">
-                        <span>{t.name}</span>
-                        <span className="text-muted text-xs">{currency(t.defaultPrice)}</span>
-                      </button>
-                    ))}
+                ) : (
+                  <div>
+                    <div style={{ display:'flex', gap:10 }}>
+                      <div className="nb-search" style={{ flex:1 }}>
+                        <Users size={15} style={{ color:'#9CA3AF', flexShrink:0 }} />
+                        <input placeholder="Buscar cliente por nome, e-mail ou telefone..." />
+                        <ChevronDown size={15} style={{ color:'#9CA3AF', flexShrink:0 }} />
+                      </div>
+                      <button type="button" className="nb-btn-outline" onClick={() => setUseNewClient(true)}><Plus size={14} /> Novo cliente</button>
+                    </div>
+                    {clients.length > 0 && (
+                      <select className="nb-select" style={{ marginTop:10 }} {...register('clientId')}>
+                        <option value="">Selecione um cliente...</option>
+                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` — ${c.phone}` : ''}</option>)}
+                      </select>
+                    )}
                   </div>
                 )}
               </div>
-              <button type="button" onClick={() => addCustomItem(false)}
-                className="btn-secondary flex items-center gap-2">
-                <Plus size={16} /> Item avulso
-              </button>
-              <button type="button" onClick={() => addCustomItem(true)}
-                className="btn-secondary flex items-center gap-2 text-amber-600 border-amber-200 hover:bg-amber-50">
-                <Plus size={16} /> Mão de obra
-              </button>
-            </div>
-          </div>
 
-          {/* Valores */}
-          <div className="card">
-            <h2 className="font-semibold text-slate-700 mb-4">Valores</h2>
-            <div className="flex flex-col gap-3">
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-slate-700">Desconto</label>
-                  <div className="flex gap-2 mt-1">
-                    <select className="input w-28" {...register('discountType')}>
-                      <option value="fixed">R$</option>
-                      <option value="percent">%</option>
-                    </select>
-                    <input type="number" step="0.01" min="0" className="input"
-                      placeholder="0" {...register('discountValue')} />
+              {/* Itens */}
+              <div className="nb-card">
+                <div className="nb-items-header">
+                  <div className="nb-card-title" style={{ marginBottom:0 }}>
+                    <div className="nb-card-title-icon"><ShoppingCart size={15} /></div>
+                    Itens do orçamento
+                  </div>
+                  <div className="nb-items-toolbar">
+                    <button type="button" className="nb-btn-outline"><Upload size={13} /> Importar</button>
+                    <button type="button" className="nb-btn-primary" onClick={addItem}><Plus size={14} /> Adicionar item</button>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <Input label="Extras (R$)" type="number" step="0.01" min="0"
-                    placeholder="0" {...register('extras')} />
+                <div className="nb-col-headers" style={{ marginTop:16 }}>
+                  <span>Item</span><span>Descrição</span><span>Qtd.</span><span>Valor unit.</span><span>Total</span><span></span>
+                </div>
+                {items.map(item => (
+                  <div key={item.id} className="nb-item-row">
+                    <div className="nb-item-name">
+                      <div className="nb-item-icon"><Tag size={13} /></div>
+                      <input className="nb-input" placeholder="Nome do item" value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} style={{ fontSize:13, fontWeight:500 }} />
+                    </div>
+                    <input className="nb-input" placeholder="Descrição opcional" value={item.desc} onChange={e => updateItem(item.id, 'desc', e.target.value)} style={{ fontSize:12 }} />
+                    <div className="nb-qty-ctrl">
+                      <button type="button" className="nb-qty-btn" onClick={() => changeQty(item.id, -1)}><Minus size={12} /></button>
+                      <span className="nb-qty-val">{item.qty}</span>
+                      <button type="button" className="nb-qty-btn" onClick={() => changeQty(item.id, 1)}><Plus size={12} /></button>
+                    </div>
+                    <input type="number" step="0.01" min="0" className="nb-input" value={item.unitPrice} onChange={e => updateItem(item.id, 'unitPrice', e.target.value)} />
+                    <span className="nb-item-total">{currency(item.qty * item.unitPrice)}</span>
+                    <button type="button" className="nb-del-btn" onClick={() => removeItem(item.id)}><Trash2 size={14} /></button>
+                  </div>
+                ))}
+                <button type="button" className="nb-add-row" onClick={addItem}><Plus size={15} /> Adicionar novo item</button>
+              </div>
+
+              {/* Valores */}
+              <div className="nb-card">
+                <div className="nb-card-title">
+                  <div className="nb-card-title-icon"><Tag size={15} /></div>
+                  Valores e descontos
+                </div>
+                <div className="nb-val-grid">
+                  <div>
+                    <span className="nb-label">Tipo de desconto</span>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <select className="nb-select" style={{ width:80 }} {...register('discountType')}>
+                        <option value="fixed">R$</option>
+                        <option value="percent">%</option>
+                      </select>
+                      <input type="number" step="0.01" min="0" className="nb-input" placeholder="0" {...register('discountValue')} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="nb-label">Extras (R$)</span>
+                    <input type="number" step="0.01" min="0" className="nb-input" placeholder="0" {...register('extras')} />
+                  </div>
+                  <div style={{ gridColumn:'1/-1' }}>
+                    <span className="nb-label">Descrição dos extras</span>
+                    <input className="nb-input" placeholder="Ex: taxa de deslocamento" {...register('extrasDescription')} />
+                  </div>
+                </div>
+                <div className="nb-summary-box">
+                  <div className="nb-summary-row"><span className="lbl">Subtotal</span><span className="val">{currency(subtotal)}</span></div>
+                  {discountAmount > 0 && <div className="nb-summary-row discount"><span className="lbl">Desconto</span><span className="val">− {currency(discountAmount)}</span></div>}
+                  <div className="nb-summary-row"><span className="lbl">Impostos (0%)</span><span className="val">R$ 0,00</span></div>
+                  {extras > 0 && <div className="nb-summary-row"><span className="lbl">Extras</span><span className="val">{currency(extras)}</span></div>}
+                  <div className="nb-summary-row total-row"><span className="lbl">Total</span><span className="val">{currency(total)}</span></div>
                 </div>
               </div>
-              <Input label="Descrição dos extras (opcional)"
-                placeholder="Ex: taxa de deslocamento"
-                {...register('extrasDescription')} />
+
+              {/* Detalhes */}
+              <div className="nb-card">
+                <div className="nb-card-title">
+                  <div className="nb-card-title-icon"><ClipboardList size={15} /></div>
+                  Detalhes adicionais
+                </div>
+                <div className="nb-val-grid" style={{ marginBottom:14 }}>
+                  <div>
+                    <span className="nb-label">Validade do orçamento</span>
+                    <input type="date" className="nb-date-input" {...register('validityDays')} />
+                  </div>
+                </div>
+                <div style={{ marginBottom:14 }}>
+                  <span className="nb-label">Observações (opcional)</span>
+                  <textarea className="nb-textarea" rows={4} placeholder="Condições, prazos, garantias..." {...register('notes')} />
+                </div>
+                <div>
+                  <span className="nb-label">Formas de pagamento</span>
+                  <textarea className="nb-textarea" rows={3} placeholder="Ex: Pix, cartão em até 3x, dinheiro..." {...register('paymentMethods')} />
+                </div>
+              </div>
             </div>
 
-            {/* Resumo */}
-            <div className="mt-4 bg-slate-50 rounded-lg p-4 flex flex-col gap-1.5">
-              <div className="flex justify-between text-sm text-muted">
-                <span>Subtotal</span><span>{currency(subtotal)}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-sm text-red-500">
-                  <span>Desconto</span><span>- {currency(discountAmount)}</span>
+            {/* Sidebar */}
+            <div className="nb-sidebar">
+              <div className="nb-resume-card">
+                <div className="nb-resume-head">
+                  <span className="nb-resume-head-title">Resumo do orçamento</span>
+                  <span className="nb-resume-badge">Rascunho</span>
                 </div>
-              )}
-              {extras > 0 && (
-                <div className="flex justify-between text-sm text-muted">
-                  <span>Extras</span><span>{currency(extras)}</span>
+                <div className="nb-resume-meta">
+                  <div className="nb-resume-meta-icon"><FileText size={16} /></div>
+                  <div>
+                    <div className="nb-resume-num">Nº 000123</div>
+                    <div className="nb-resume-date">Criado em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })}</div>
+                  </div>
                 </div>
-              )}
-              <div className="flex justify-between text-lg font-bold text-primary border-t border-slate-200 pt-2 mt-1">
-                <span>Total</span><span>{currency(total)}</span>
+                <div className="nb-resume-body">
+                  <div className="nb-resume-line"><span className="lbl">Itens ({items.length})</span><span className="val">{currency(subtotal)}</span></div>
+                  <div className="nb-resume-line"><span className="lbl">Desconto</span><span className={discountAmount > 0 ? 'discount' : 'val'}>{discountAmount > 0 ? `− ${currency(discountAmount)}` : 'R$ 0,00'}</span></div>
+                  <div className="nb-resume-line"><span className="lbl">Impostos (0%)</span><span className="val">R$ 0,00</span></div>
+                  <div className="nb-resume-total"><span className="lbl">Total</span><span className="val">{currency(total)}</span></div>
+                  <div className="nb-link-hint">
+                    <Link2 size={16} className="nb-link-hint-icon" />
+                    <div>
+                      <div className="nb-link-hint-title">Link de aprovação</div>
+                      <div className="nb-link-hint-sub">Será gerado após a finalização do orçamento.</div>
+                    </div>
+                  </div>
+                  <button type="submit" className="nb-btn-continue" disabled={loading}>
+                    {loading ? 'Criando...' : <><span>Criar Orçamento</span><ArrowRight size={16} /></>}
+                  </button>
+                  <button type="button" className="nb-btn-preview" onClick={() => navigate('/budgets')}>
+                    <Eye size={14} /> Visualizar prévia
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Detalhes */}
-          <div className="card">
-            <h2 className="font-semibold text-slate-700 mb-4">Detalhes</h2>
-            <div className="flex flex-col gap-3">
-              <Input label="Validade (dias)" type="number" min="1"
-                {...register('validityDays')} />
-              <div>
-                <label className="text-sm font-medium text-slate-700">Observações</label>
-                <textarea className="input mt-1 h-24 resize-none"
-                  placeholder="Condições, prazos, garantias..."
-                  {...register('notes')} />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-slate-700">Formas de pagamento</label>
-                <textarea className="input mt-1 h-20 resize-none"
-                  placeholder="Ex: Pix, cartão em até 3x, dinheiro..."
-                  {...register('paymentMethods')} />
-              </div>
-            </div>
-          </div>
-
-          <button type="submit" className="btn-primary w-full py-3 text-base" disabled={loading}>
-            {loading ? 'Criando orçamento...' : 'Criar orçamento'}
-          </button>
-
-          <div className="h-20 md:h-0" /> {/* espaço para nav mobile */}
         </form>
       </div>
     </Layout>

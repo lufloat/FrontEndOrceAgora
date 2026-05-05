@@ -7,6 +7,9 @@ export default {
         surface: "#F8FAFC",
         muted: "#64748B",
       },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'], // 🔥 aqui ativa Inter global
+      },
     },
   },
   plugins: [],

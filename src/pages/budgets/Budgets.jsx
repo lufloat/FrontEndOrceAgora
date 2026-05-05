@@ -64,81 +64,144 @@ export default function Budgets() {
 
   return (
     <Layout>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Orçamentos</h1>
-          <p className="text-sm text-muted">{budgets.length} encontrados</p>
-        </div>
-        <button className="btn-primary flex items-center gap-2"
-          onClick={() => navigate('/budgets/new')}>
-          <Plus size={18} /> Novo orçamento
-        </button>
-      </div>
 
-      {/* Filtros */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-        {STATUS_FILTERS.map(f => (
-          <button key={f.value}
-            onClick={() => setStatus(f.value)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors
-              ${status === f.value
-                ? 'bg-primary text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>
-            {f.label}
+      {/* HEADER */}
+      <div className="max-w-5xl mx-auto px-6">
+
+        <div className="flex items-center justify-between py-8">
+          <div>
+            <h1 className="text-3xl font-semibold text-[#0D0D0D]">
+              Orçamentos
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Gerencie seus orçamentos com eficiência
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate('/budgets/new')}
+            className="flex items-center gap-2 bg-[#027373] hover:bg-[#038C7F] text-white px-5 py-2.5 rounded-xl font-medium transition shadow-sm hover:shadow-md"
+          >
+            <Plus size={18} />
+            Novo orçamento
           </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
-      ) : budgets.length === 0 ? (
-        <EmptyState icon="📄" title="Nenhum orçamento ainda"
-          description="Crie seu primeiro orçamento em segundos"
-          action={
-            <button className="btn-primary flex items-center gap-2"
-              onClick={() => navigate('/budgets/new')}>
-              <Plus size={18} /> Novo orçamento
+
+        {/* FILTROS */}
+        <div className="flex gap-2 mb-6 bg-white p-1 rounded-xl border border-gray-200 w-fit shadow-sm">
+          {STATUS_FILTERS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setStatus(f.value)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition
+                ${status === f.value
+                  ? 'bg-[#027373] text-white shadow'
+                  : 'text-gray-600 hover:bg-gray-100'
+                }`}
+            >
+              {f.label}
             </button>
-          } />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {budgets.map(b => (
-            <div key={b.id} className="card flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-slate-800">#{String(b.number).padStart(4,'0')}</span>
-                  <StatusBadge status={b.status} />
-                </div>
-                <p className="text-sm text-muted truncate">{b.clientName ?? 'Cliente não informado'}</p>
-                <p className="text-xs text-slate-400">{date(b.createdAt)} · vence {date(b.expiresAt)}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-slate-800">{currency(b.total)}</p>
-              </div>
-              <div className="flex items-center gap-1">
-                <button title="Ver" onClick={() => navigate(`/budgets/${b.id}`)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                  <Eye size={16} className="text-slate-500" />
-                </button>
-                <button title="Copiar link" onClick={() => copyLink(b.approvalToken)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                  <Link2 size={16} className="text-slate-500" />
-                </button>
-                <button title="Baixar PDF" onClick={() => handlePdf(b.id, b.number)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                  <FileDown size={16} className="text-slate-500" />
-                </button>
-                <button title="Deletar" onClick={() => handleDelete(b.id)}
-                  className="p-2 hover:bg-red-50 rounded-lg transition-colors">
-                  <Trash2 size={16} className="text-red-400" />
-                </button>
-              </div>
-            </div>
           ))}
         </div>
-      )}
+
+        {/* LOADING */}
+        {loading ? (
+          <div className="flex justify-center py-20">
+            <div className="w-10 h-10 border-4 border-[#ADD9D1] border-t-[#027373] rounded-full animate-spin" />
+          </div>
+        ) : budgets.length === 0 ? (
+          <EmptyState
+            icon="📄"
+            title="Nenhum orçamento ainda"
+            description="Crie seu primeiro orçamento em segundos"
+            action={
+              <button
+                onClick={() => navigate('/budgets/new')}
+                className="flex items-center gap-2 bg-[#027373] text-white px-4 py-2 rounded-lg"
+              >
+                <Plus size={18} />
+                Novo orçamento
+              </button>
+            }
+          />
+        ) : (
+
+          <div className="flex flex-col gap-3 pb-10">
+
+            {budgets.map(b => (
+              <div
+                key={b.id}
+                className="group bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4 hover:shadow-md hover:border-[#ADD9D1] transition-all"
+              >
+
+                {/* INFO */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-[#0D0D0D]">
+                      #{String(b.number).padStart(4, '0')}
+                    </span>
+                    <StatusBadge status={b.status} />
+                  </div>
+
+                  <p className="text-sm text-gray-600 truncate">
+                    {b.clientName ?? 'Cliente não informado'}
+                  </p>
+
+                  <p className="text-xs text-gray-400 mt-1">
+                    Criado em {date(b.createdAt)} • vence {date(b.expiresAt)}
+                  </p>
+                </div>
+
+                {/* VALOR */}
+                <div className="text-right min-w-[130px]">
+                  <p className="text-lg font-semibold text-[#027373]">
+                    {currency(b.total)}
+                  </p>
+                </div>
+
+                {/* AÇÕES */}
+                <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition">
+
+                  <button
+                    onClick={() => navigate(`/budgets/${b.id}`)}
+                    title="Visualizar"
+                    className="p-2 hover:bg-[#ADD9D1]/40 rounded-lg transition"
+                  >
+                    <Eye size={16} className="text-[#027373]" />
+                  </button>
+
+                  <button
+                    onClick={() => copyLink(b.approvalToken)}
+                    title="Copiar link"
+                    className="p-2 hover:bg-[#ADD9D1]/40 rounded-lg transition"
+                  >
+                    <Link2 size={16} className="text-[#027373]" />
+                  </button>
+
+                  <button
+                    onClick={() => handlePdf(b.id, b.number)}
+                    title="Baixar PDF"
+                    className="p-2 hover:bg-[#ADD9D1]/40 rounded-lg transition"
+                  >
+                    <FileDown size={16} className="text-[#027373]" />
+                  </button>
+
+                  <button
+                    onClick={() => handleDelete(b.id)}
+                    title="Deletar"
+                    className="p-2 hover:bg-red-50 rounded-lg transition"
+                  >
+                    <Trash2 size={16} className="text-[#D95252]" />
+                  </button>
+
+                </div>
+              </div>
+            ))}
+
+          </div>
+        )}
+
+      </div>
     </Layout>
   )
 }

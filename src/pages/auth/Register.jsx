@@ -16,6 +16,7 @@ function PasswordStrength({ password }) {
     { label: 'Número', ok: /[0-9]/.test(password) },
     { label: 'Caractere especial', ok: /[^A-Za-z0-9]/.test(password) },
   ]
+
   const score = rules.filter(r => r.ok).length
   const colors = ['bg-red-400', 'bg-red-400', 'bg-amber-400', 'bg-amber-400', 'bg-green-500']
   const labels = ['', 'Muito fraca', 'Fraca', 'Média', 'Boa', 'Forte']
@@ -31,15 +32,17 @@ function PasswordStrength({ password }) {
               ${i <= score ? colors[score - 1] : 'bg-slate-200'}`} />
         ))}
       </div>
+
       <p className={`text-xs font-medium ${score >= 4 ? 'text-green-600' : 'text-amber-600'}`}>
         {labels[score]}
       </p>
+
       <div className="flex flex-col gap-1">
         {rules.map(r => (
           <div key={r.label} className="flex items-center gap-1.5">
             {r.ok
-              ? <Check size={12} className="text-green-500 flex-shrink-0" />
-              : <X size={12} className="text-slate-300 flex-shrink-0" />}
+              ? <Check size={12} className="text-green-500" />
+              : <X size={12} className="text-slate-300" />}
             <span className={`text-xs ${r.ok ? 'text-green-600' : 'text-slate-400'}`}>
               {r.label}
             </span>
@@ -70,6 +73,7 @@ export default function Register() {
       toast.error('Crie uma senha mais forte')
       return
     }
+
     try {
       setLoading(true)
       const res = await registerApi(data)
@@ -84,61 +88,107 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
-      <div className="card w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-primary mb-1">StimServ</h1>
-        <p className="text-muted text-sm mb-6">Crie sua conta grátis</p>
+    <div className="min-h-screen flex items-center justify-center p-4
+      bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+
+      <div className="w-full max-w-sm p-8 rounded-2xl bg-white/80 backdrop-blur-xl
+        shadow-xl border border-white/40">
+
+        {/* LOGO */}
+        <div className="flex justify-center mb-4">
+          <img
+            src="/StimServlogo.png"
+            alt="Logo"
+            className="w-[300px] object-contain"
+          />
+        </div>
+
+      <h1 className="text-2xl font-semibold text-slate-800 text-center mb-6">
+  Crie sua conta grátis
+</h1>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-          <Input label="Seu nome" placeholder="João Silva"
+
+          <Input
+            label="Seu nome"
+            placeholder="João Silva"
             error={errors.name?.message}
-            {...register('name', { required: 'Informe seu nome' })} />
+            {...register('name', { required: 'Informe seu nome' })}
+          />
 
-          <Input label="Nome da empresa (opcional)" placeholder="Marcenaria do João"
-            {...register('companyName')} />
+          <Input
+            label="Nome da empresa (opcional)"
+            placeholder="Marcenaria do João"
+            {...register('companyName')}
+          />
 
-          <Input label="E-mail" type="email" placeholder="seu@email.com"
+          <Input
+            label="E-mail"
+            type="email"
+            placeholder="seu@email.com"
             error={errors.email?.message}
-            {...register('email', { required: 'Informe o e-mail' })} />
+            {...register('email', { required: 'Informe o e-mail' })}
+          />
 
-          <Input label="Telefone" placeholder="11999999999"
-            {...register('phone')} />
+          <Input
+            label="Telefone"
+            placeholder="11999999999"
+            {...register('phone')}
+          />
 
+          {/* SENHA */}
           <div className="flex flex-col gap-1">
             <label className="text-sm font-medium text-slate-700">Senha</label>
+
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="input pr-10"
                 placeholder="Crie uma senha forte"
-                {...register('password', { required: true })} />
-              <button type="button"
+                {...register('password', { required: true })}
+              />
+
+              <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-muted hover:text-slate-600">
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 transition"
+              >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+
             <PasswordStrength password={password} />
           </div>
 
-          <button className="btn-primary w-full mt-2" disabled={loading}>
+          <button
+            className="w-full py-2.5 rounded-lg font-medium text-white
+            bg-primary hover:bg-primary/90 transition-all shadow-md"
+            disabled={loading}
+          >
             {loading ? 'Criando conta...' : 'Criar conta'}
           </button>
+
         </form>
 
-        <div className="relative my-4">
+        {/* DIVISOR */}
+        <div className="relative my-5">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-slate-200" />
           </div>
           <div className="relative flex justify-center">
-            <span className="bg-white px-3 text-xs text-muted">ou continue com</span>
+            <span className="bg-white px-3 text-xs text-slate-400">
+              ou continue com
+            </span>
           </div>
         </div>
+
         <GoogleButton />
 
-        <p className="text-sm text-center text-muted mt-4">
+        <p className="text-sm text-center text-slate-500 mt-4">
           Já tem conta?{' '}
-          <Link to="/login" className="text-primary font-medium">Entrar</Link>
+          <Link to="/login" className="text-primary font-medium hover:underline">
+            Entrar
+          </Link>
         </p>
       </div>
     </div>
