@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { login } from "../../api/auth";
+import { useGoogleLogin } from "@react-oauth/google";
+import { login, googleLogin } from "../../api/auth";
 import { useAuthStore } from "../../store/authStore";
 import {
   Eye,
@@ -36,6 +37,7 @@ const features = [
 export default function Login() {
   const { register, handleSubmit } = useForm();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [remember, setRemember] = useState(false);
@@ -55,6 +57,27 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  // ✅ CORRIGIDO: useGoogleLogin com fluxo implicit (access_token)
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        setGoogleLoading(true);
+        setErrorMsg("");
+        // Envia o access_token ao backend (que busca os dados do usuário)
+        const res = await googleLogin(tokenResponse.access_token);
+        setAuth(res.data.user, res.data.token);
+        navigate("/budgets");
+      } catch {
+        setErrorMsg("Erro ao entrar com Google. Tente novamente.");
+      } finally {
+        setGoogleLoading(false);
+      }
+    },
+    onError: () => {
+      setErrorMsg("Login com Google cancelado ou falhou.");
+    },
+  });
 
   return (
     <>
@@ -228,12 +251,6 @@ export default function Login() {
           margin-bottom: 40px;
         }
         .form-logo img { width: 300px; height: auto; }
-        .form-logo-name {
-          font-size: 20px;
-          font-weight: 700;
-          color: #111;
-          letter-spacing: -0.3px;
-        }
 
         .form-title {
           font-size: 32px;
@@ -329,7 +346,6 @@ export default function Login() {
 
         .remember span { font-size: 13px; color: #374151; }
 
-        /* ✅ CORRIGIDO: era .forgot como <a>, agora é Link estilizado */
         .forgot {
           font-size: 13px;
           font-weight: 500;
@@ -391,10 +407,11 @@ export default function Login() {
           transition: border-color .2s, box-shadow .15s;
           margin-bottom: 28px;
         }
-        .btn-google:hover {
+        .btn-google:hover:not(:disabled) {
           border-color: #D1D5DB;
           box-shadow: 0 2px 8px rgba(0,0,0,0.07);
         }
+        .btn-google:disabled { opacity: 0.7; cursor: not-allowed; }
 
         .google-icon { width: 20px; height: 20px; }
 
@@ -533,7 +550,6 @@ export default function Login() {
                   />
                   <span>Lembrar de mim</span>
                 </label>
-                {/* ✅ CORRIGIDO: Link ao invés de <a href> */}
                 <Link to="/esqueci-senha" className="forgot">
                   Esqueci minha senha
                 </Link>
@@ -557,7 +573,13 @@ export default function Login() {
               <div className="divider-line" />
             </div>
 
-            <button className="btn-google" type="button">
+            {/* ✅ CORRIGIDO: onClick chama handleGoogleLogin() */}
+            <button
+              className="btn-google"
+              type="button"
+              onClick={() => handleGoogleLogin()}
+              disabled={googleLoading}
+            >
               <svg className="google-icon" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
@@ -576,7 +598,7 @@ export default function Login() {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              Entrar com Google
+              {googleLoading ? "Entrando com Google..." : "Entrar com Google"}
             </button>
 
             <p className="signup-text">

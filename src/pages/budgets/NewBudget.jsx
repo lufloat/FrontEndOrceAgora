@@ -10,21 +10,27 @@ import { Layout } from '../../components/Layout'
 import {
   Plus, Trash2, ChevronDown, FileText,
   Users, ShoppingCart, Tag, ClipboardList,
-  Minus, ArrowRight, Eye, Link2, Upload
+  Minus, ArrowRight, Eye, Link2, Upload, Wrench
 } from 'lucide-react'
+
+const LABOR_TYPES = [
+  { value: 'hourly', label: 'Por hora' },
+  { value: 'daily',  label: 'Por dia'  },
+]
 
 export default function NewBudget() {
   const navigate = useNavigate()
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: { discountType: 'fixed', discountValue: 0, extras: 0, validityDays: 30 }
   })
 
   const [clients, setClients]           = useState([])
   const [templates, setTemplates]       = useState([])
   const [items, setItems]               = useState([
-    { id: '1', name: '', desc: '', qty: 1, unitPrice: 0, isLabor: false, laborType: null },
-    { id: '2', name: '', desc: '', qty: 1, unitPrice: 0, isLabor: false, laborType: null },
+    { id: '1', name: '', desc: '', qty: 1, unitPrice: 0 },
+    { id: '2', name: '', desc: '', qty: 1, unitPrice: 0 },
   ])
+  const [labor, setLabor] = useState({ name: '', laborType: 'hourly', qty: 1, unitPrice: 0 })
   const [useNewClient, setUseNewClient] = useState(false)
   const [loading, setLoading]           = useState(false)
 
@@ -37,24 +43,65 @@ export default function NewBudget() {
     getTemplates().then(r => setTemplates(r.data)).catch(() => {})
   }, [])
 
-  const subtotal       = items.reduce((a, i) => a + i.qty * i.unitPrice, 0)
+  const subtotalMat    = items.reduce((a, i) => a + i.qty * i.unitPrice, 0)
+  const subtotalLabor  = labor.unitPrice > 0 ? labor.qty * labor.unitPrice : 0
+  const subtotal       = subtotalMat + subtotalLabor
   const discountAmount = discountType === 'percent' ? subtotal * (discountValue / 100) : discountValue
   const total          = subtotal - discountAmount + extras
 
-  const addItem    = () => setItems(p => [...p, { id: crypto.randomUUID(), name: '', desc: '', qty: 1, unitPrice: 0, isLabor: false, laborType: null }])
-  const updateItem = (id, field, value) => setItems(p => p.map(i => i.id === id ? { ...i, [field]: ['name','desc','laborType'].includes(field) ? value : parseFloat(value)||0 } : i))
+  const addItem    = () => setItems(p => [...p, {
+    id: crypto.randomUUID(), name: '', desc: '', qty: 1, unitPrice: 0
+  }])
+  const updateItem = (id, field, value) => setItems(p => p.map(i => {
+    if (i.id !== id) return i
+    if (['name', 'desc'].includes(field)) return { ...i, [field]: value }
+    return { ...i, [field]: parseFloat(value) || 0 }
+  }))
   const removeItem = (id) => setItems(p => p.filter(i => i.id !== id))
   const changeQty  = (id, delta) => setItems(p => p.map(i => i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
 
+  const updateLabor = (field, value) => setLabor(p => ({
+    ...p,
+    [field]: ['name', 'laborType'].includes(field) ? value : (parseFloat(value) || 0)
+  }))
+  const changeLaborQty = (delta) => setLabor(p => ({ ...p, qty: Math.max(1, p.qty + delta) }))
+
+  const handleValidityDate = (e) => {
+    if (!e.target.value) return
+    const today = new Date(); today.setHours(0, 0, 0, 0)
+    const chosen = new Date(e.target.value + 'T00:00:00')
+    const diffDays = Math.round((chosen - today) / (1000 * 60 * 60 * 24))
+    setValue('validityDays', diffDays > 0 ? diffDays : 1)
+  }
+
+  const defaultDateValue = (() => {
+    const d = new Date(); d.setDate(d.getDate() + 30)
+    return d.toISOString().split('T')[0]
+  })()
+
   const onSubmit = async (data) => {
-    if (!items.length) { toast.error('Adicione pelo menos um item'); return }
+    if (!items.length && !labor.unitPrice) { toast.error('Adicione pelo menos um item'); return }
     try {
       setLoading(true)
+      const allItems = [
+        ...items.map(i => ({
+          name: i.name, qty: i.qty, unitPrice: i.unitPrice,
+          isLabor: false, laborType: null, desc: i.desc
+        })),
+        ...(labor.unitPrice > 0 ? [{
+          name: labor.name || 'Mão de obra',
+          qty: labor.qty,
+          unitPrice: labor.unitPrice,
+          isLabor: true,
+          laborType: labor.laborType,
+          desc: ''
+        }] : [])
+      ]
       const payload = {
         clientId: useNewClient ? null : data.clientId || null,
         clientName: useNewClient ? data.clientName : null,
         clientPhone: useNewClient ? data.clientPhone : null,
-        items: items.map(i => ({ name: i.name, qty: i.qty, unitPrice: i.unitPrice, isLabor: i.isLabor, laborType: i.laborType })),
+        items: allItems,
         discountType: data.discountType,
         discountValue: parseFloat(data.discountValue) || 0,
         extras: parseFloat(data.extras) || 0,
@@ -92,7 +139,6 @@ export default function NewBudget() {
         .nb-search input { flex:1; border:none; outline:none; font-size:14px; color:#374151; padding:12px 0; background:transparent; }
         .nb-search input::placeholder { color:#C4C8CF; }
         .nb-items-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-        .nb-items-toolbar { display:flex; gap:8px; }
         .nb-btn-outline { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:9px; border:1.5px solid #E5E7EB; background:#fff; font-size:12px; font-weight:500; color:#374151; cursor:pointer; transition:.15s; }
         .nb-btn-outline:hover { border-color:#027373; color:#027373; }
         .nb-btn-primary { display:flex; align-items:center; gap:6px; padding:9px 16px; border-radius:9px; border:none; background:#027373; color:#fff; font-size:13px; font-weight:600; cursor:pointer; transition:.15s; }
@@ -101,9 +147,7 @@ export default function NewBudget() {
         .nb-col-headers { display:grid; grid-template-columns:2fr 2fr 120px 130px 110px 36px; gap:12px; padding:8px 12px; font-size:11px; font-weight:600; color:#9CA3AF; text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid #F3F4F6; margin-bottom:4px; }
         .nb-item-row { display:grid; grid-template-columns:2fr 2fr 120px 130px 110px 36px; gap:12px; align-items:center; padding:12px; border:1px solid #F3F4F6; border-radius:10px; margin-bottom:6px; background:#FAFAFA; transition:.15s; }
         .nb-item-row:hover { border-color:#E5E7EB; background:#fff; }
-        .nb-item-icon { width:30px; height:30px; border-radius:8px; background:#EBF5F4; display:flex; align-items:center; justify-content:center; color:#027373; flex-shrink:0; }
-        .nb-item-name { display:flex; align-items:center; gap:8px; }
-        .nb-input { width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; transition:.15s; }
+        .nb-input { width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; transition:.15s; box-sizing:border-box; }
         .nb-input:focus { border-color:#027373; box-shadow:0 0 0 3px rgba(2,115,115,.1); }
         .nb-input::placeholder { color:#C4C8CF; }
         .nb-qty-ctrl { display:flex; align-items:center; gap:4px; }
@@ -111,9 +155,9 @@ export default function NewBudget() {
         .nb-qty-btn:hover { border-color:#027373; color:#027373; }
         .nb-qty-val { width:32px; text-align:center; font-size:13px; font-weight:600; color:#0D0D0D; }
         .nb-item-total { font-size:14px; font-weight:600; color:#0D0D0D; }
-        .nb-del-btn { width:32px; height:32px; border-radius:7px; border:1.5px solid #FEE2E2; background:#FFF5F5; display:flex; align-items:center; justify-content:center; color:#D95252; cursor:pointer; transition:.15s; }
+        .nb-del-btn { width:32px; height:32px; border-radius:7px; border:1.5px solid #FEE2E2; background:#FFF5F5; display:flex; align-items:center; justify-content:center; color:#D95252; cursor:pointer; transition:.15s; flex-shrink:0; }
         .nb-del-btn:hover { background:#FEE2E2; }
-        .nb-add-row { width:100%; padding:14px; border-radius:10px; border:1.5px dashed #E5E7EB; background:#FAFAFA; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:500; color:#9CA3AF; cursor:pointer; transition:.15s; margin-top:8px; }
+        .nb-add-row { width:100%; margin-top:8px; padding:14px; border-radius:10px; border:1.5px dashed #E5E7EB; background:#FAFAFA; display:flex; align-items:center; justify-content:center; gap:6px; font-size:13px; font-weight:500; color:#9CA3AF; cursor:pointer; transition:.15s; }
         .nb-add-row:hover { border-color:#027373; color:#027373; background:#EBF5F4; }
         .nb-val-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
         .nb-label { font-size:12px; font-weight:500; color:#374151; margin-bottom:6px; display:block; }
@@ -124,9 +168,12 @@ export default function NewBudget() {
         .nb-summary-row .lbl { color:#6B7280; }
         .nb-summary-row .val { font-weight:500; color:#374151; }
         .nb-summary-row.discount .val { color:#D95252; }
+        .nb-summary-row.labor-row .lbl { color:#027373; }
+        .nb-summary-row.labor-row .val { color:#027373; }
         .nb-summary-row.total-row { border-top:1px solid #E5E7EB; margin-top:8px; padding-top:12px; }
         .nb-summary-row.total-row .lbl { font-size:15px; font-weight:700; color:#0D0D0D; }
         .nb-summary-row.total-row .val { font-size:18px; font-weight:700; color:#027373; }
+        .nb-summary-divider { border:none; border-top:1px dashed #E5E7EB; margin:6px 0; }
         .nb-textarea { width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; resize:none; transition:.15s; font-family:'Inter',sans-serif; }
         .nb-textarea:focus { border-color:#027373; box-shadow:0 0 0 3px rgba(2,115,115,.1); }
         .nb-textarea::placeholder { color:#C4C8CF; }
@@ -142,9 +189,10 @@ export default function NewBudget() {
         .nb-resume-body { background:#fff; padding:20px 22px; }
         .nb-resume-line { display:flex; justify-content:space-between; align-items:center; font-size:13px; padding:8px 0; border-bottom:1px solid #F3F4F6; }
         .nb-resume-line:last-of-type { border-bottom:none; }
-        .nb-resume-line .lbl { color:#6B7280; }
+        .nb-resume-line .lbl { color:#6B7280; display:flex; align-items:center; gap:5px; }
         .nb-resume-line .val { font-weight:500; color:#374151; }
         .nb-resume-line .discount { color:#D95252; }
+        .nb-resume-line .labor { color:#027373; }
         .nb-resume-total { display:flex; justify-content:space-between; align-items:center; padding:14px 0 6px; }
         .nb-resume-total .lbl { font-size:15px; font-weight:700; color:#0D0D0D; }
         .nb-resume-total .val { font-size:20px; font-weight:700; color:#027373; }
@@ -159,11 +207,34 @@ export default function NewBudget() {
         .nb-btn-preview:hover { border-color:#027373; color:#027373; }
         .nb-date-input { width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid #E5E7EB; font-size:13px; color:#374151; outline:none; background:#fff; transition:.15s; font-family:'Inter',sans-serif; }
         .nb-date-input:focus { border-color:#027373; }
+
+        /* ── Mão de obra — paleta teal ── */
+        .nb-labor-card { background:#F0FAF9; border:1.5px solid #ADD9D1; border-radius:14px; padding:20px 24px; margin-bottom:16px; }
+        .nb-labor-header { display:flex; align-items:center; gap:10px; margin-bottom:16px; }
+        .nb-labor-icon { width:32px; height:32px; border-radius:8px; background:#ADD9D1; display:flex; align-items:center; justify-content:center; color:#027373; flex-shrink:0; }
+        .nb-labor-title { font-size:15px; font-weight:600; color:#027373; }
+        .nb-labor-sub { font-size:12px; color:#038C7F; margin-top:1px; }
+        .nb-labor-toggle { display:flex; background:#fff; border:1.5px solid #ADD9D1; border-radius:10px; padding:4px; gap:4px; margin-bottom:16px; width:fit-content; }
+        .nb-labor-toggle-btn { padding:7px 20px; border-radius:7px; border:none; font-size:13px; font-weight:500; cursor:pointer; transition:.15s; color:#038C7F; background:transparent; }
+        .nb-labor-toggle-btn.active { background:#027373; color:#fff; box-shadow:0 2px 8px rgba(2,115,115,.25); }
+        .nb-labor-grid { display:grid; grid-template-columns:2fr 120px 1.2fr 1fr; gap:12px; align-items:end; }
+        .nb-labor-input { width:100%; padding:10px 12px; border-radius:9px; border:1.5px solid #ADD9D1; font-size:13px; color:#374151; outline:none; background:#fff; transition:.15s; box-sizing:border-box; }
+        .nb-labor-input:focus { border-color:#027373; box-shadow:0 0 0 3px rgba(2,115,115,.12); }
+        .nb-labor-input::placeholder { color:#C4C8CF; }
+        .nb-labor-qty { display:flex; align-items:center; gap:6px; }
+        .nb-labor-qty-btn { width:30px; height:30px; border-radius:7px; border:1.5px solid #ADD9D1; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#027373; transition:.15s; flex-shrink:0; }
+        .nb-labor-qty-btn:hover { background:#ADD9D1; border-color:#027373; }
+        .nb-labor-qty-val { min-width:28px; text-align:center; font-size:14px; font-weight:700; color:#027373; }
+        .nb-labor-total { font-size:15px; font-weight:700; color:#027373; text-align:right; padding-bottom:2px; }
+        .nb-labor-total-zero { font-size:13px; color:#C4C8CF; text-align:right; padding-bottom:2px; }
+        .nb-labor-label { font-size:12px; font-weight:500; color:#027373; margin-bottom:6px; display:block; }
+
         @media(max-width:900px){
           .nb-layout { grid-template-columns:1fr; }
           .nb-sidebar { position:static; }
           .nb-col-headers { display:none; }
-          .nb-item-row { grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:8px; }
+          .nb-item-row { grid-template-columns:1fr 1fr; gap:8px; }
+          .nb-labor-grid { grid-template-columns:1fr 1fr; }
         }
       `}</style>
 
@@ -171,7 +242,8 @@ export default function NewBudget() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="nb-layout">
             <div>
-              {/* Cliente */}
+
+              {/* ── Cliente ── */}
               <div className="nb-card">
                 <div className="nb-card-title">
                   <div className="nb-card-title-icon"><Users size={15} /></div>
@@ -210,42 +282,140 @@ export default function NewBudget() {
                 )}
               </div>
 
-              {/* Itens */}
+              {/* ── Itens ── */}
               <div className="nb-card">
                 <div className="nb-items-header">
                   <div className="nb-card-title" style={{ marginBottom:0 }}>
                     <div className="nb-card-title-icon"><ShoppingCart size={15} /></div>
                     Itens do orçamento
                   </div>
-                  <div className="nb-items-toolbar">
+                  <div style={{ display:'flex', gap:8 }}>
                     <button type="button" className="nb-btn-outline"><Upload size={13} /> Importar</button>
                     <button type="button" className="nb-btn-primary" onClick={addItem}><Plus size={14} /> Adicionar item</button>
                   </div>
                 </div>
+
                 <div className="nb-col-headers" style={{ marginTop:16 }}>
-                  <span>Item</span><span>Descrição</span><span>Qtd.</span><span>Valor unit.</span><span>Total</span><span></span>
+                  <span>Item</span>
+                  <span>Descrição</span>
+                  <span>Qtd.</span>
+                  <span>Valor unit.</span>
+                  <span>Total</span>
+                  <span></span>
                 </div>
+
                 {items.map(item => (
                   <div key={item.id} className="nb-item-row">
-                    <div className="nb-item-name">
-                      <div className="nb-item-icon"><Tag size={13} /></div>
-                      <input className="nb-input" placeholder="Nome do item" value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} style={{ fontSize:13, fontWeight:500 }} />
-                    </div>
-                    <input className="nb-input" placeholder="Descrição opcional" value={item.desc} onChange={e => updateItem(item.id, 'desc', e.target.value)} style={{ fontSize:12 }} />
+                    <input
+                      className="nb-input"
+                      placeholder="Nome do item"
+                      value={item.name}
+                      onChange={e => updateItem(item.id, 'name', e.target.value)}
+                      style={{ fontSize:13, fontWeight:500 }}
+                    />
+                    <input
+                      className="nb-input"
+                      placeholder="Descrição opcional"
+                      value={item.desc}
+                      onChange={e => updateItem(item.id, 'desc', e.target.value)}
+                      style={{ fontSize:12 }}
+                    />
                     <div className="nb-qty-ctrl">
                       <button type="button" className="nb-qty-btn" onClick={() => changeQty(item.id, -1)}><Minus size={12} /></button>
                       <span className="nb-qty-val">{item.qty}</span>
                       <button type="button" className="nb-qty-btn" onClick={() => changeQty(item.id, 1)}><Plus size={12} /></button>
                     </div>
-                    <input type="number" step="0.01" min="0" className="nb-input" value={item.unitPrice} onChange={e => updateItem(item.id, 'unitPrice', e.target.value)} />
+                    <input
+                      type="number" step="0.01" min="0"
+                      className="nb-input"
+                      value={item.unitPrice || ''}
+                      onChange={e => updateItem(item.id, 'unitPrice', e.target.value)}
+                      placeholder="0,00"
+                    />
                     <span className="nb-item-total">{currency(item.qty * item.unitPrice)}</span>
                     <button type="button" className="nb-del-btn" onClick={() => removeItem(item.id)}><Trash2 size={14} /></button>
                   </div>
                 ))}
-                <button type="button" className="nb-add-row" onClick={addItem}><Plus size={15} /> Adicionar novo item</button>
+
+                <button type="button" className="nb-add-row" onClick={addItem}>
+                  <Plus size={15} /> Adicionar item
+                </button>
               </div>
 
-              {/* Valores */}
+              {/* ── Mão de obra ── */}
+              <div className="nb-labor-card">
+                <div className="nb-labor-header">
+                  <div className="nb-labor-icon"><Wrench size={15} /></div>
+                  <div>
+                    <div className="nb-labor-title">Mão de obra</div>
+                    <div className="nb-labor-sub">Preencha somente se houver cobrança de mão de obra</div>
+                  </div>
+                </div>
+
+                {/* Toggle Por hora / Por dia */}
+                <div className="nb-labor-toggle">
+                  {LABOR_TYPES.map(lt => (
+                    <button
+                      key={lt.value}
+                      type="button"
+                      className={`nb-labor-toggle-btn ${labor.laborType === lt.value ? 'active' : ''}`}
+                      onClick={() => updateLabor('laborType', lt.value)}
+                    >
+                      {lt.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="nb-labor-grid">
+                  {/* Descrição */}
+                  <div>
+                    <span className="nb-labor-label">Descrição</span>
+                    <input
+                      className="nb-labor-input"
+                      placeholder="Ex: Instalação, pintura, montagem..."
+                      value={labor.name}
+                      onChange={e => updateLabor('name', e.target.value)}
+                    />
+                  </div>
+
+                  {/* Quantidade */}
+                  <div>
+                    <span className="nb-labor-label">
+                      {labor.laborType === 'hourly' ? 'Horas' : 'Dias'}
+                    </span>
+                    <div className="nb-labor-qty">
+                      <button type="button" className="nb-labor-qty-btn" onClick={() => changeLaborQty(-1)}><Minus size={12} /></button>
+                      <span className="nb-labor-qty-val">{labor.qty}</span>
+                      <button type="button" className="nb-labor-qty-btn" onClick={() => changeLaborQty(1)}><Plus size={12} /></button>
+                    </div>
+                  </div>
+
+                  {/* Valor unitário */}
+                  <div>
+                    <span className="nb-labor-label">
+                      {labor.laborType === 'hourly' ? 'Valor / hora' : 'Valor / dia'}
+                    </span>
+                    <input
+                      type="number" step="0.01" min="0"
+                      className="nb-labor-input"
+                      value={labor.unitPrice || ''}
+                      onChange={e => updateLabor('unitPrice', e.target.value)}
+                      placeholder="0,00"
+                    />
+                  </div>
+
+                  {/* Total */}
+                  <div style={{ display:'flex', flexDirection:'column', justifyContent:'flex-end' }}>
+                    <span className="nb-labor-label">Total mão de obra</span>
+                    {subtotalLabor > 0
+                      ? <div className="nb-labor-total">{currency(subtotalLabor)}</div>
+                      : <div className="nb-labor-total-zero">—</div>
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Valores e descontos ── */}
               <div className="nb-card">
                 <div className="nb-card-title">
                   <div className="nb-card-title-icon"><Tag size={15} /></div>
@@ -272,6 +442,23 @@ export default function NewBudget() {
                   </div>
                 </div>
                 <div className="nb-summary-box">
+                  {subtotalLabor > 0 && subtotalMat > 0 && (
+                    <>
+                      <div className="nb-summary-row">
+                        <span className="lbl" style={{ display:'flex', alignItems:'center', gap:5 }}>
+                          <Tag size={11} /> Materiais / Serviços
+                        </span>
+                        <span className="val">{currency(subtotalMat)}</span>
+                      </div>
+                      <div className="nb-summary-row labor-row">
+                        <span className="lbl" style={{ display:'flex', alignItems:'center', gap:5 }}>
+                          <Wrench size={11} /> Mão de obra
+                        </span>
+                        <span className="val">{currency(subtotalLabor)}</span>
+                      </div>
+                      <hr className="nb-summary-divider" />
+                    </>
+                  )}
                   <div className="nb-summary-row"><span className="lbl">Subtotal</span><span className="val">{currency(subtotal)}</span></div>
                   {discountAmount > 0 && <div className="nb-summary-row discount"><span className="lbl">Desconto</span><span className="val">− {currency(discountAmount)}</span></div>}
                   <div className="nb-summary-row"><span className="lbl">Impostos (0%)</span><span className="val">R$ 0,00</span></div>
@@ -280,7 +467,7 @@ export default function NewBudget() {
                 </div>
               </div>
 
-              {/* Detalhes */}
+              {/* ── Detalhes adicionais ── */}
               <div className="nb-card">
                 <div className="nb-card-title">
                   <div className="nb-card-title-icon"><ClipboardList size={15} /></div>
@@ -289,7 +476,13 @@ export default function NewBudget() {
                 <div className="nb-val-grid" style={{ marginBottom:14 }}>
                   <div>
                     <span className="nb-label">Validade do orçamento</span>
-                    <input type="date" className="nb-date-input" {...register('validityDays')} />
+                    <input
+                      type="date"
+                      className="nb-date-input"
+                      defaultValue={defaultDateValue}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={handleValidityDate}
+                    />
                   </div>
                 </div>
                 <div style={{ marginBottom:14 }}>
@@ -303,7 +496,7 @@ export default function NewBudget() {
               </div>
             </div>
 
-            {/* Sidebar */}
+            {/* ── Sidebar ── */}
             <div className="nb-sidebar">
               <div className="nb-resume-card">
                 <div className="nb-resume-head">
@@ -318,10 +511,33 @@ export default function NewBudget() {
                   </div>
                 </div>
                 <div className="nb-resume-body">
-                  <div className="nb-resume-line"><span className="lbl">Itens ({items.length})</span><span className="val">{currency(subtotal)}</span></div>
-                  <div className="nb-resume-line"><span className="lbl">Desconto</span><span className={discountAmount > 0 ? 'discount' : 'val'}>{discountAmount > 0 ? `− ${currency(discountAmount)}` : 'R$ 0,00'}</span></div>
+                  {subtotalMat > 0 && (
+                    <div className="nb-resume-line">
+                      <span className="lbl"><Tag size={11} /> Materiais ({items.length})</span>
+                      <span className="val">{currency(subtotalMat)}</span>
+                    </div>
+                  )}
+                  {subtotalLabor > 0 && (
+                    <div className="nb-resume-line">
+                      <span className="lbl"><Wrench size={11} /> Mão de obra</span>
+                      <span className="labor">{currency(subtotalLabor)}</span>
+                    </div>
+                  )}
+                  {subtotalMat === 0 && subtotalLabor === 0 && (
+                    <div className="nb-resume-line">
+                      <span className="lbl">Itens ({items.length})</span>
+                      <span className="val">{currency(subtotal)}</span>
+                    </div>
+                  )}
+                  <div className="nb-resume-line">
+                    <span className="lbl">Desconto</span>
+                    <span className={discountAmount > 0 ? 'discount' : 'val'}>{discountAmount > 0 ? `− ${currency(discountAmount)}` : 'R$ 0,00'}</span>
+                  </div>
                   <div className="nb-resume-line"><span className="lbl">Impostos (0%)</span><span className="val">R$ 0,00</span></div>
-                  <div className="nb-resume-total"><span className="lbl">Total</span><span className="val">{currency(total)}</span></div>
+                  <div className="nb-resume-total">
+                    <span className="lbl">Total</span>
+                    <span className="val">{currency(total)}</span>
+                  </div>
                   <div className="nb-link-hint">
                     <Link2 size={16} className="nb-link-hint-icon" />
                     <div>
@@ -338,6 +554,7 @@ export default function NewBudget() {
                 </div>
               </div>
             </div>
+
           </div>
         </form>
       </div>
