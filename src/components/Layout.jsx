@@ -42,11 +42,12 @@ export function Layout({ children }) {
   ]
 
   const mobileNav = [
-    { to: '/budgets',   icon: FileText,   label: 'Orçamentos' },
-    { to: '/clients',   icon: Users,      label: 'Clientes'   },
-    { to: '/templates', icon: Layers,     label: 'Modelos'    },
-    { to: '/planos',    icon: Crown,      label: 'Planos'     },
-    { to: '/profile',   icon: UserCircle, label: 'Perfil'     },
+    { to: '/budgets',   icon: FileText,        label: 'Orçamentos', pro: false },
+    { to: '/clients',   icon: Users,           label: 'Clientes',   pro: false },
+    { to: '/templates', icon: Layers,          label: 'Modelos',    pro: false },
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard',  pro: true  },
+    { to: '/agenda',    icon: CalendarDays,    label: 'Agenda',     pro: true  },
+    { to: '/profile',   icon: UserCircle,      label: 'Perfil',     pro: false },
   ]
 
   const initials = user?.name
@@ -258,19 +259,86 @@ export function Layout({ children }) {
         .ly-mobile-item {
           flex: 1; display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          padding: 10px 4px 8px;
+          padding: 10px 2px 8px;
           text-decoration: none;
-          font-size: 10px; font-weight: 500;
+          font-size: 9px; font-weight: 500;
           color: #9CA3AF; gap: 4px; transition: color .15s;
         }
         .ly-mobile-item.active { color: #027373; }
         .ly-mobile-item.active svg { stroke: #027373; }
+        .ly-mobile-item.locked { color: #C4C8CF; }
+
+        .ly-mobile-icon-wrap {
+          position: relative;
+          display: inline-flex;
+        }
+        .ly-mobile-lock {
+          position: absolute;
+          bottom: -2px; right: -5px;
+          background: #fff;
+          border-radius: 50%;
+          padding: 1px;
+          line-height: 0;
+          color: #9CA3AF;
+        }
+
+        /* ── Mobile top bar ── */
+        .ly-mobile-topbar {
+          display: none;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 20px;
+          background: linear-gradient(135deg, #022E2E 0%, #027373 100%);
+          position: sticky;
+          top: 0;
+          z-index: 40;
+        }
+        .ly-mobile-topbar-left {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .ly-mobile-topbar-logo {
+          height: 32px;
+          width: auto;
+          object-fit: contain;
+        }
+        .ly-mobile-topbar-name {
+          font-size: 13px;
+          font-weight: 700;
+          color: #fff;
+          max-width: 160px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .ly-mobile-logout-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255,255,255,.1);
+          border: 1px solid rgba(255,255,255,.15);
+          border-radius: 9px;
+          padding: 7px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          color: rgba(255,255,255,.8);
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          transition: all .15s;
+        }
+        .ly-mobile-logout-btn:hover {
+          background: rgba(217,82,82,.25);
+          color: #fff;
+          border-color: rgba(217,82,82,.4);
+        }
 
         @media (max-width: 768px) {
           .ly-sidebar { display: none; }
           .ly-main { margin-left: 0; padding-bottom: 64px; }
           .ly-content { padding: 0 20px 32px; }
           .ly-mobile-nav { display: flex; flex-direction: column; }
+          .ly-mobile-topbar { display: flex; }
         }
       `}</style>
 
@@ -332,17 +400,41 @@ export function Layout({ children }) {
         </aside>
 
         <main className="ly-main">
+          {/* Mobile top bar */}
+          <div className="ly-mobile-topbar">
+            <div className="ly-mobile-topbar-left">
+              <div className="ly-avatar" style={{ width: 32, height: 32, fontSize: 11 }}>{initials}</div>
+              <span className="ly-mobile-topbar-name">{user?.name || 'Usuário'}</span>
+            </div>
+            <button className="ly-mobile-logout-btn" onClick={handleLogout}>
+              <LogOut size={14} />
+              Sair
+            </button>
+          </div>
+
           <PlanBanner />
           <div className="ly-content">{children}</div>
         </main>
 
         <nav className="ly-mobile-nav">
           <div className="ly-mobile-nav-inner">
-            {mobileNav.map(({ to, icon: Icon, label }) => {
+            {mobileNav.map(({ to, icon: Icon, label, pro }) => {
+              const locked = pro && !isPro
               const active = pathname.startsWith(to)
               return (
-                <Link key={to} to={to} className={`ly-mobile-item${active ? ' active' : ''}`}>
-                  <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
+                <Link
+                  key={to}
+                  to={locked ? '/planos' : to}
+                  className={`ly-mobile-item${active ? ' active' : ''}${locked ? ' locked' : ''}`}
+                >
+                  <span className="ly-mobile-icon-wrap">
+                    <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
+                    {locked && (
+                      <span className="ly-mobile-lock">
+                        <Lock size={9} />
+                      </span>
+                    )}
+                  </span>
                   {label}
                 </Link>
               )

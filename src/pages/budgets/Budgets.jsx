@@ -64,39 +64,48 @@ export default function Budgets() {
 
   return (
     <Layout>
+      {/*
+        ─── REGRA DE OURO ────────────────────────────────────────────────────
+        Nenhum filho pode ter largura maior que 100vw.
+        • Sem min-w fixo
+        • Sem whitespace-nowrap em textos longos
+        • Sem flex em linha que some mais de 100%
+        ──────────────────────────────────────────────────────────────────────
+      */}
+      <div className="w-full min-w-0 max-w-5xl mx-auto px-4 sm:px-6 box-border">
 
-      {/* HEADER */}
-      <div className="max-w-5xl mx-auto px-6">
+        {/* ── HEADER ─────────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between py-6 sm:py-8 gap-2 min-w-0">
 
-        <div className="flex items-center justify-between py-8">
-          <div>
-            <h1 className="text-3xl font-semibold text-[#0D0D0D]">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-[#0D0D0D]">
               Orçamentos
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">
               Gerencie seus orçamentos com eficiência
             </p>
           </div>
 
+          {/* Botão: ícone + texto curto — nunca vaza */}
           <button
             onClick={() => navigate('/budgets/new')}
-            className="flex items-center gap-2 bg-[#027373] hover:bg-[#038C7F] text-white px-5 py-2.5 rounded-xl font-medium transition shadow-sm hover:shadow-md"
+            className="flex-shrink-0 flex items-center gap-1.5 bg-[#027373] hover:bg-[#038C7F] text-white px-3 py-2 sm:px-5 sm:py-2.5 rounded-xl font-medium text-sm transition shadow-sm"
           >
-            <Plus size={18} />
-            Novo orçamento
+            <Plus size={16} />
+            <span>Novo</span>
           </button>
         </div>
 
-        {/* FILTROS */}
-        <div className="flex gap-2 mb-6 bg-white p-1 rounded-xl border border-gray-200 w-fit shadow-sm">
+        {/* ── FILTROS: grid que quebra linha automaticamente ──────────────── */}
+        <div className="flex flex-wrap gap-2 mb-6">
           {STATUS_FILTERS.map(f => (
             <button
               key={f.value}
               onClick={() => setStatus(f.value)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition border
                 ${status === f.value
-                  ? 'bg-[#027373] text-white shadow'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-[#027373] text-white border-[#027373] shadow-sm'
+                  : 'text-gray-600 bg-white border-gray-200 hover:bg-gray-50'
                 }`}
             >
               {f.label}
@@ -104,11 +113,12 @@ export default function Budgets() {
           ))}
         </div>
 
-        {/* LOADING */}
+        {/* ── LOADING ─────────────────────────────────────────────────────── */}
         {loading ? (
           <div className="flex justify-center py-20">
             <div className="w-10 h-10 border-4 border-[#ADD9D1] border-t-[#027373] rounded-full animate-spin" />
           </div>
+
         ) : budgets.length === 0 ? (
           <EmptyState
             icon="📄"
@@ -117,87 +127,84 @@ export default function Budgets() {
             action={
               <button
                 onClick={() => navigate('/budgets/new')}
-                className="flex items-center gap-2 bg-[#027373] text-white px-4 py-2 rounded-lg"
+                className="flex items-center gap-2 bg-[#027373] text-white px-4 py-2 rounded-lg text-sm font-medium"
               >
-                <Plus size={18} />
+                <Plus size={16} />
                 Novo orçamento
               </button>
             }
           />
+
         ) : (
-
           <div className="flex flex-col gap-3 pb-10">
-
             {budgets.map(b => (
               <div
                 key={b.id}
-                className="group bg-white border border-gray-200 rounded-xl p-5 flex items-center gap-4 hover:shadow-md hover:border-[#ADD9D1] transition-all"
+                className="w-full min-w-0 bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-[#ADD9D1] transition-all"
               >
 
-                {/* INFO */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-[#0D0D0D]">
+                {/* LINHA 1 — número + badge + valor (nunca vaza) */}
+                <div className="flex items-center justify-between gap-2 min-w-0 mb-1">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span className="font-semibold text-[#0D0D0D] flex-shrink-0">
                       #{String(b.number).padStart(4, '0')}
                     </span>
-                    <StatusBadge status={b.status} />
+                    <div className="flex-shrink-0">
+                      <StatusBadge status={b.status} />
+                    </div>
                   </div>
-
-                  <p className="text-sm text-gray-600 truncate">
-                    {b.clientName ?? 'Cliente não informado'}
-                  </p>
-
-                  <p className="text-xs text-gray-400 mt-1">
-                    Criado em {date(b.createdAt)} • vence {date(b.expiresAt)}
-                  </p>
-                </div>
-
-                {/* VALOR */}
-                <div className="text-right min-w-[130px]">
-                  <p className="text-lg font-semibold text-[#027373]">
+                  <span className="flex-shrink-0 text-base font-semibold text-[#027373]">
                     {currency(b.total)}
-                  </p>
+                  </span>
                 </div>
 
-                {/* AÇÕES */}
-                <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition">
+                {/* LINHA 2 — cliente */}
+                <p className="text-sm text-gray-600 truncate w-full mb-1">
+                  {b.clientName ?? 'Cliente não informado'}
+                </p>
 
+                {/* LINHA 3 — datas */}
+                <p className="text-xs text-gray-400 mb-3">
+                  Criado {date(b.createdAt)} · vence {date(b.expiresAt)}
+                </p>
+
+                {/* LINHA 4 — ações separadas para não encolher textos acima */}
+                <div className="flex items-center gap-1 pt-2 border-t border-gray-100">
                   <button
                     onClick={() => navigate(`/budgets/${b.id}`)}
-                    title="Visualizar"
-                    className="p-2 hover:bg-[#ADD9D1]/40 rounded-lg transition"
+                    className="flex items-center gap-1.5 flex-1 justify-center py-1.5 text-xs font-medium text-[#027373] hover:bg-[#ADD9D1]/30 rounded-lg transition"
                   >
-                    <Eye size={16} className="text-[#027373]" />
+                    <Eye size={14} />
+                    <span>Ver</span>
                   </button>
 
                   <button
                     onClick={() => copyLink(b.approvalToken)}
-                    title="Copiar link"
-                    className="p-2 hover:bg-[#ADD9D1]/40 rounded-lg transition"
+                    className="flex items-center gap-1.5 flex-1 justify-center py-1.5 text-xs font-medium text-[#027373] hover:bg-[#ADD9D1]/30 rounded-lg transition"
                   >
-                    <Link2 size={16} className="text-[#027373]" />
+                    <Link2 size={14} />
+                    <span>Link</span>
                   </button>
 
                   <button
                     onClick={() => handlePdf(b.id, b.number)}
-                    title="Baixar PDF"
-                    className="p-2 hover:bg-[#ADD9D1]/40 rounded-lg transition"
+                    className="flex items-center gap-1.5 flex-1 justify-center py-1.5 text-xs font-medium text-[#027373] hover:bg-[#ADD9D1]/30 rounded-lg transition"
                   >
-                    <FileDown size={16} className="text-[#027373]" />
+                    <FileDown size={14} />
+                    <span>PDF</span>
                   </button>
 
                   <button
                     onClick={() => handleDelete(b.id)}
-                    title="Deletar"
-                    className="p-2 hover:bg-red-50 rounded-lg transition"
+                    className="flex items-center gap-1.5 flex-1 justify-center py-1.5 text-xs font-medium text-[#D95252] hover:bg-red-50 rounded-lg transition"
                   >
-                    <Trash2 size={16} className="text-[#D95252]" />
+                    <Trash2 size={14} />
+                    <span>Excluir</span>
                   </button>
-
                 </div>
+
               </div>
             ))}
-
           </div>
         )}
 
